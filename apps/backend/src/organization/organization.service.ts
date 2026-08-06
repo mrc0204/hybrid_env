@@ -74,12 +74,33 @@ export class OrganizationService {
         throw AppError.notFound(`Could not resolve location coordinates for "${name}". Please choose from the search suggestions.`);
       }
 
-      const elements = await this.fetchInfrastructure(profile.boundingBox);
-      const entities = attachConnectivity(normalizeOsmElements(elements));
+      // Infrastructure enriches the world model but is not required for it.
+      // Overpass is a free, frequently-overloaded public API; when it's down,
+      // degrading to zero entities still yields a complete recommendation
+      // from live weather + traffic, which is far better than failing the
+      // whole request over an optional enrichment. Not cached in this case,
+      // so a later request retries Overpass rather than pinning the empty result.
+      let entities: Awaited<ReturnType<typeof attachConnectivity>> = [];
+      let infrastructureAvailable = true;
+      try {
+        const elements = await this.fetchInfrastructure(profile.boundingBox);
+        entities = attachConnectivity(normalizeOsmElements(elements));
+      } catch (infraErr) {
+        infrastructureAvailable = false;
+        logger.warn(
+          { err: infraErr, name },
+          "[organization] infrastructure lookup failed — continuing without entities",
+        );
+      }
 
-      await this.cacheWriter(name, profile, entities);
+      if (infrastructureAvailable) {
+        await this.cacheWriter(name, profile, entities);
+      }
 
-      logger.info({ name, entityCount: entities.length }, "[organization] live discovery complete");
+      logger.info(
+        { name, entityCount: entities.length, infrastructureAvailable },
+        "[organization] live discovery complete",
+      );
       return { profile, entities, source: "live" };
     } catch (err) {
       const isDefaultCampus =
