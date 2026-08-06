@@ -23,6 +23,11 @@ import { STAGES, useCognition } from "@/store/cognition";
 export function useCognitiveCycle(enabled: boolean) {
   const timers = useRef<number[]>([]);
   const assessedOrganization = useCognition((s) => s.assessedOrganization);
+  // A new trace is the signal that there is something new to walk through.
+  // For a discovered organization it arrives asynchronously, after the
+  // organization name is already in the store, so the name alone can't drive
+  // the animation — it would run before the data it is meant to reveal.
+  const traceKey = useCognition((s) => s.trace.key);
 
   useEffect(() => {
     if (!enabled || !assessedOrganization) return;
@@ -39,14 +44,7 @@ export function useCognitiveCycle(enabled: boolean) {
       assessedOrganization.toLowerCase().includes("kkh") ||
       assessedOrganization.toLowerCase().includes("south gate");
 
-    if (!isDefaultCampus) {
-      // Set stages to complete and stand by on the custom organization trace.
-      const { completeCycle } = useCognition.getState();
-      completeCycle();
-      return clearAll;
-    }
-
-    const animateStages = (onDone: () => void) => {
+    const animateStages = (onDone?: () => void) => {
       const { advanceStage, completeCycle } = useCognition.getState();
       let elapsed = 0;
       STAGES.forEach((stage, i) => {
@@ -58,9 +56,26 @@ export function useCognitiveCycle(enabled: boolean) {
         }
       });
 
-      const HOLD_MS = 9000;
-      timers.current.push(window.setTimeout(onDone, elapsed + HOLD_MS));
+      if (onDone) {
+        const HOLD_MS = 9000;
+        timers.current.push(window.setTimeout(onDone, elapsed + HOLD_MS));
+      }
     };
+
+    if (!isDefaultCampus) {
+      // Walk the spine once over the discovered organization's trace, then
+      // settle on it. Deliberately no `onDone`: looping here would rotate the
+      // user's organization back to the default campus scenarios.
+      //
+      // This previously jumped straight to completeCycle(), which left every
+      // real search showing all six stages already finished — so the detail
+      // pane opened on Recommend and the reasoning that produced it was never
+      // seen unless a stage was clicked by hand.
+      clearAll();
+      useCognition.getState().startCycle();
+      animateStages();
+      return clearAll;
+    }
 
     const runMockCycle = () => {
       clearAll();
@@ -95,7 +110,7 @@ export function useCognitiveCycle(enabled: boolean) {
     timers.current.push(bootTimer);
 
     return clearAll;
-  }, [enabled, assessedOrganization]);
+  }, [enabled, assessedOrganization, traceKey]);
 }
 
 function toCognitiveTrace(trace: Awaited<ReturnType<typeof fetchLatestTrace>>): CognitiveTrace {

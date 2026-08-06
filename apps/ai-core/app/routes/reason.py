@@ -55,9 +55,7 @@ def reason(
     decision = consensus_engine.resolve(world_state, simulations, opinions, critic_report)
 
     chosen_simulation = next(s for s in simulations if s.id == decision.chosen_simulation_result_id)
-    recommendation = recommendation_engine.generate(
-        decision, chosen_simulation, risks, world_state.summary
-    )
+    recommendation = recommendation_engine.generate(decision, chosen_simulation, risks, world_state)
 
     trace_service.set(
         ReasonTrace(

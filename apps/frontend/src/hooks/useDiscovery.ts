@@ -307,14 +307,13 @@ export function useDiscovery() {
                             decision: trace.decision,
                             recommendation: trace.recommendation,
                           });
-                          // setTrace resets activeStage to -1 (needed so the animated
-                          // live cycle in useCognitiveCycle can replay stage-by-stage).
-                          // For a one-shot discovery there is no animation to replay —
-                          // completeCycle() may already have fired (from the
-                          // assessedOrganization effect) *before* this fetch resolved,
-                          // so re-asserting "ready" here makes the final state
-                          // deterministic regardless of which async path wins the race.
-                          useCognition.getState().completeCycle();
+                          // Deliberately does not complete the cycle here.
+                          // setTrace resets activeStage to -1, and the new
+                          // trace key is what wakes useCognitiveCycle to walk
+                          // the spine through these six stages and finish on
+                          // Recommend. Forcing "complete" at this point would
+                          // skip that walk — which is exactly the bug where
+                          // every discovery landed on a finished spine.
                         })
                         .catch((err) => {
                           console.error("Failed to fetch latest live trace", err);

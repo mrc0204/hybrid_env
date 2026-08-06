@@ -79,6 +79,12 @@
 .leaflet-tile-pane {
   filter: grayscale(0.7) brightness(0.55) contrast(1.15);
 }
+/* Satellite is the one basemap left legible: desaturating imagery to match
+   the abstract map would defeat the only reason to switch to it. Dimmed
+   just enough that the risk and entity markers still read on top. */
+[data-basemap="satellite"] .leaflet-tile-pane {
+  filter: brightness(0.72) contrast(1.05) saturate(0.9);
+}
 .leaflet-control-attribution {
   background: rgba(7, 8, 11, 0.7) !important;
   color: #3a3e4e !important;
