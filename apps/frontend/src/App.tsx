@@ -315,4 +315,3 @@ function LandingInput({
     </form>
   );
 }
-}
