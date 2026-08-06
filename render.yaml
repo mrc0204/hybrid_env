@@ -16,7 +16,11 @@ services:
     plan: free
     # Root left at the repo root (not apps/backend) so npm workspaces can
     # resolve packages/contracts during install — see DEPLOYMENT.md.
-    buildCommand: npm install && npm run build -w apps/backend
+    # --include=dev is required: NODE_ENV=production (set below) makes plain
+    # `npm install` skip devDependencies, which silently drops `typescript`
+    # and `@types/*` packages the tsc build itself needs — the build would
+    # fail with "Could not find a declaration file" errors without this.
+    buildCommand: npm install --include=dev && npm run build -w apps/backend
     startCommand: npm run start -w apps/backend
     envVars:
       - key: NODE_VERSION
