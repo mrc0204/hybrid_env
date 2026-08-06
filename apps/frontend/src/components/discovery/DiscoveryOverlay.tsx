@@ -3,6 +3,7 @@ import { CheckCircle2, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import type { Recommendation } from "@ai-env/contracts";
+import { resolveMapsLink } from "@/api/client";
 import { cn } from "@/lib/utils";
 import {
   DISCOVERY_STAGES,
@@ -11,9 +12,21 @@ import {
   type StageMetrics,
 } from "@/store/discoveryStore";
 
+type DiscoverFn = (
+  orgName: string,
+  center?: { lat: number; lng: number },
+  boundingBox?: { south: number; west: number; north: number; east: number },
+) => void;
+
 interface DiscoveryOverlayProps {
   onCancel: () => void;
   onDismiss: () => void;
+  /**
+   * Retries discovery with an explicit center — used by the maps-link
+   * fallback in FailurePanel to bypass name-based geocoding entirely once
+   * OSM has already failed to resolve a location.
+   */
+  onDiscover: DiscoverFn;
 }
 
 /**
@@ -28,7 +41,7 @@ interface DiscoveryOverlayProps {
  * and exit transitions are handled at that level. The overlay only needs its
  * own internal AnimatePresence for the success/failure swap.
  */
-export function DiscoveryOverlay({ onCancel, onDismiss }: DiscoveryOverlayProps) {
+export function DiscoveryOverlay({ onCancel, onDismiss, onDiscover }: DiscoveryOverlayProps) {
   const phase = useDiscoveryStore((s) => s.phase);
   const orgName = useDiscoveryStore((s) => s.orgName);
   const currentStage = useDiscoveryStore((s) => s.currentStage);
@@ -90,7 +103,9 @@ export function DiscoveryOverlay({ onCancel, onDismiss }: DiscoveryOverlayProps)
                   <FailurePanel
                     key="error"
                     error={error}
+                    orgName={orgName}
                     onDismiss={onDismiss}
+                    onDiscover={onDiscover}
                   />
                 )}
               </AnimatePresence>
@@ -358,7 +373,17 @@ function SuccessPanel({
   );
 }
 
-function FailurePanel({ error, onDismiss }: { error: string; onDismiss: () => void }) {
+function FailurePanel({
+  error,
+  orgName,
+  onDismiss,
+  onDiscover,
+}: {
+  error: string;
+  orgName: string;
+  onDismiss: () => void;
+  onDiscover: DiscoverFn;
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -377,9 +402,95 @@ function FailurePanel({ error, onDismiss }: { error: string; onDismiss: () => vo
           >
             Dismiss
           </button>
+
+          <MapsLinkFallback orgName={orgName} onDiscover={onDiscover} />
         </div>
       </div>
     </motion.div>
+  );
+}
+
+/**
+ * Recovery path when name-based resolution fails: the user pastes a Google
+ * Maps link, the backend extracts a lat/lng pin from it (following
+ * shortened links server-side — a browser can't read a cross-origin
+ * redirect's final URL), and discovery retries with that point directly.
+ * Errors here stay local to this form — they never re-throw or reset the
+ * overlay, so a bad link just leaves the user free to try another one.
+ */
+function MapsLinkFallback({ orgName, onDiscover }: { orgName: string; onDiscover: DiscoverFn }) {
+  const [url, setUrl] = useState("");
+  const [status, setStatus] = useState<"idle" | "resolving" | "error">("idle");
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = url.trim();
+    if (!trimmed || status === "resolving") return;
+
+    setStatus("resolving");
+    setLocalError(null);
+
+    resolveMapsLink(trimmed)
+      .then((center) => {
+        // From here, control passes to the shared discovery flow — its own
+        // phase/error (surfaced by the parent FailurePanel) takes over
+        // showing progress or failure. Resetting to "idle" here rather than
+        // leaving "resolving" set matters because that flow can itself fail
+        // for reasons unrelated to the link (e.g. a transient backend
+        // conflict) — without this, this form's own submit button would stay
+        // disabled forever even though the coordinates were resolved fine.
+        setStatus("idle");
+        // A ~1.1km box around the pin — wide enough to cover a campus or
+        // landmark's surrounding infrastructure, small enough that Overpass
+        // stays fast. Matches the granularity of a geocoded place lookup.
+        const delta = 0.01;
+        onDiscover(orgName, center, {
+          south: center.lat - delta,
+          north: center.lat + delta,
+          west: center.lng - delta,
+          east: center.lng + delta,
+        });
+      })
+      .catch((err: unknown) => {
+        setStatus("error");
+        setLocalError(err instanceof Error ? err.message : "Could not resolve that link.");
+      });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-4 border-t border-severity-high/15 pt-3">
+      <span className="font-mono text-[9px] uppercase tracking-widest text-ink-ghost">
+        Or paste a Google Maps link
+      </span>
+      <div className="mt-2 flex gap-2">
+        <input
+          type="url"
+          value={url}
+          onChange={(e) => {
+            setUrl(e.target.value);
+            if (status === "error") setStatus("idle");
+          }}
+          placeholder="https://maps.google.com/..."
+          className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 py-2 text-[11px] text-ink outline-none placeholder:text-ink-ghost focus:border-cognition/40"
+        />
+        <button
+          type="submit"
+          disabled={!url.trim() || status === "resolving"}
+          className={cn(
+            "shrink-0 rounded-lg border border-cognition/40 px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-cognition transition-colors duration-200",
+            !url.trim() || status === "resolving"
+              ? "cursor-not-allowed opacity-40"
+              : "hover:bg-cognition/10",
+          )}
+        >
+          {status === "resolving" ? "Resolving…" : "Use link"}
+        </button>
+      </div>
+      {status === "error" && localError && (
+        <p className="mt-2 text-[11px] leading-snug text-severity-high">{localError}</p>
+      )}
+    </form>
   );
 }
 

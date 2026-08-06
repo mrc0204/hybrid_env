@@ -236,6 +236,23 @@ export function useDiscovery() {
       const handleApiSuccess = (result: OrganizationDiscoveryResult) => {
         if (useDiscoveryStore.getState().phase !== "running") return;
 
+        // A missing recommendation (pipeline genuinely failed server-side, e.g.
+        // an unresolvable location) is not a success — treat it as one used to
+        // force a non-null assertion downstream and crash the Recommendation
+        // panel on `rec.confidence` of `undefined`. `status: "degraded"` alone
+        // is NOT a failure case here — it just means one upstream source (e.g.
+        // traffic or weather) had a hiccup while the AI Core still produced a
+        // usable recommendation from partial data; only a missing
+        // recommendation means there's nothing usable to show.
+        if (!result.pipeline.recommendation) {
+          clearTimers();
+          fail(
+            result.pipeline.error ??
+              "No recommendation could be generated for this location. Try a more specific name.",
+          );
+          return;
+        }
+
         // Clear the slow background timers
         clearTimers();
         stage8Fired = true;
@@ -298,6 +315,14 @@ export function useDiscovery() {
                             decision: trace.decision,
                             recommendation: trace.recommendation,
                           });
+                          // setTrace resets activeStage to -1 (needed so the animated
+                          // live cycle in useCognitiveCycle can replay stage-by-stage).
+                          // For a one-shot discovery there is no animation to replay —
+                          // completeCycle() may already have fired (from the
+                          // assessedOrganization effect) *before* this fetch resolved,
+                          // so re-asserting "ready" here makes the final state
+                          // deterministic regardless of which async path wins the race.
+                          useCognition.getState().completeCycle();
                         })
                         .catch((err) => {
                           console.error("Failed to fetch latest live trace", err);

@@ -92,7 +92,7 @@ export default function App() {
       <div className="relative z-10 flex h-full flex-col">
         <TopBar onDiscover={discover} />
 
-        <main className="grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)_400px] gap-3 px-7 pb-7">
+        <main className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto px-4 pb-4 lg:grid-cols-[300px_minmax(0,1fr)_400px] lg:overflow-hidden lg:px-7 lg:pb-7">
           {/* What is happening */}
           <div className="flex min-h-0 flex-col gap-3">
             <Panel className="shrink-0">
@@ -133,7 +133,12 @@ export default function App() {
       {/* Discovery overlay — mounted above everything when active */}
       <AnimatePresence>
         {isDiscoveryVisible && (
-          <DiscoveryOverlay key="discovery" onCancel={cancel} onDismiss={handleDismiss} />
+          <DiscoveryOverlay
+            key="discovery"
+            onCancel={cancel}
+            onDismiss={handleDismiss}
+            onDiscover={discover}
+          />
         )}
       </AnimatePresence>
     </div>

@@ -5,6 +5,25 @@ This guide outlines how to deploy the **Hybrid-Env** monorepo separately:
 2. **Backend Express API (Node.js)** on **Render** (Web Service)
 3. **Frontend (Vite/React)** on **Vercel** (Static Hosting)
 
+No folder restructuring is required — both platforms deploy a single service
+out of a subfolder of a monorepo natively, via a "root directory" setting
+plus a custom build command. `apps/frontend` and `apps/backend` both depend
+on `packages/contracts` through npm workspaces, so keeping the repo root as
+the install root (rather than splitting folders apart) is what lets that
+shared-types dependency resolve correctly.
+
+## Quick deploy (recommended)
+
+Two config files at the repo root codify all of the manual settings below,
+so each platform mostly self-configures on import:
+
+- **`render.yaml`** — a [Render Blueprint](https://render.com/docs/blueprint-spec). In the Render dashboard, choose **New > Blueprint**, connect the repo, and both the AI Core and Backend services are created with the right root directory, build/start commands, and env var names pre-filled. You still need to fill in the values marked `sync: false` (`AI_CORE_URL`, `TOMTOM_API_KEY`, `CORS_ORIGIN`) by hand — the AI Core one because it doesn't exist until its own first deploy finishes, the other two because they're secrets/environment-specific.
+- **`vercel.json`** — Vercel reads this automatically on import; it sets `installCommand`, `buildCommand`, and `outputDirectory` so the **Root Directory** field in Vercel's UI can stay at the repo root with no further build configuration. You still need to add `VITE_USE_MOCK` and `VITE_API_URL` as environment variables in the Vercel dashboard (see step 3 below) — Vite bakes these into the static build, so they can't be hardcoded into a file that's the same for every environment.
+
+The manual, step-by-step version of the same settings follows, useful if you
+prefer configuring each service by hand or need to see exactly what the
+Blueprint/`vercel.json` are doing.
+
 ---
 
 ## 1. Deploy AI Core (Python API) on Render

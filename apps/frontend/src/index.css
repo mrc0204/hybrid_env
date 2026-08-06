@@ -92,6 +92,15 @@
   display: none;
 }
 
+/* Below the layout's lg breakpoint the three columns stack instead of
+   clipping, so the page needs to scroll — the "never scrolls" cinematic
+   canvas is a desktop/projector-width guarantee, not a small-screen one. */
+@media (max-width: 1023px) {
+  body {
+    overflow-y: auto;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

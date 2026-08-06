@@ -18,6 +18,8 @@ _SEVERITY_PENALTY = {"low": 0.05, "medium": 0.12, "high": 0.22, "critical": 0.35
 _MITIGATION_ACTION_BY_RISK_TYPE = {
     "travel-delay": "Leave earlier than usual and take an alternate route away from the gate.",
     "congestion": "Use an alternate gate or route to avoid the congested area.",
+    "heat-exposure": "Prefer shaded or indoor routes and carry water; avoid peak sun hours.",
+    "crowd-buildup": "Arrive early or use a side entrance to avoid the event crowd.",
 }
 _DEFAULT_MITIGATION_ACTION = "Take a precautionary alternate route until conditions improve."
 

@@ -2,10 +2,16 @@
 detection over a WorldState. No statistical or learned modeling yet — rules
 are intentionally simple and legible so the reasoning is easy to audit.
 
-Worked example this implements: a "medium" traffic congestion entity alone
-produces a medium-severity congestion risk; if heavy rain is also present at
-the same time, that combination additionally produces a high-severity
-travel-delay risk.
+Four independent risk rules, each keyed off a distinct entity type already
+present in WorldState so no new ingestion is required:
+  - congestion: a "medium"/"high" traffic-segment entity alone.
+  - travel-delay: heavy rain co-occurring with congestion (compounding risk).
+  - heat-exposure: a weather entity's temperature crossing a heat threshold,
+    independent of traffic — fires on hot-climate live weather even with
+    clear roads.
+  - crowd-buildup: a campus-event entity (category "event") — real signal
+    that was already flowing through perception but previously unused by
+    reasoning.
 """
 
 from datetime import UTC, datetime
@@ -14,6 +20,7 @@ from uuid import uuid4
 from app.contracts.domain import RiskState, WorldEntity, WorldState
 
 _CONGESTION_SEVERITY = {"medium": "medium", "high": "high"}
+_HEAT_THRESHOLDS_C: list[tuple[float, str]] = [(38.0, "high"), (33.0, "medium")]
 
 
 class RiskEngine:
@@ -23,6 +30,7 @@ class RiskEngine:
 
         weather_entities = [e for e in world_state.entities if e.type == "weather"]
         traffic_entities = [e for e in world_state.entities if e.type == "traffic-segment"]
+        event_entities = [e for e in world_state.entities if e.type == "campus-event"]
 
         heavy_rain = [e for e in weather_entities if e.attributes.get("condition") == "heavy_rain"]
         congested = [
@@ -38,7 +46,25 @@ class RiskEngine:
         if heavy_rain and congested:
             risks.append(self._travel_delay_risk(heavy_rain, congested, world_state.id, now))
 
+        for entity in weather_entities:
+            severity = self._heat_severity(entity.attributes.get("temperatureC"))
+            if severity:
+                risks.append(self._heat_risk(entity, severity, world_state.id, now))
+
+        for entity in event_entities:
+            if entity.attributes.get("category") == "event":
+                risks.append(self._crowd_risk(entity, world_state.id, now))
+
         return risks
+
+    @staticmethod
+    def _heat_severity(temp_c: object) -> str | None:
+        if not isinstance(temp_c, (int, float)):
+            return None
+        for threshold, severity in _HEAT_THRESHOLDS_C:
+            if temp_c >= threshold:
+                return severity
+        return None
 
     @staticmethod
     def _congestion_risk(
@@ -76,6 +102,39 @@ class RiskEngine:
             ),
             location=congested[0].location,
             affected_entity_ids=[e.id for e in affected],
+            world_state_id=world_state_id,
+            detected_at=now,
+            updated_at=now,
+        )
+
+    @staticmethod
+    def _heat_risk(
+        entity: WorldEntity, severity: str, world_state_id: str, now: str
+    ) -> RiskState:
+        temp_c = entity.attributes.get("temperatureC")
+        return RiskState(
+            id=f"risk-{uuid4()}",
+            risk_type="heat-exposure",
+            severity=severity,
+            status="active",
+            description=f"{severity.capitalize()} heat exposure at {entity.label} ({temp_c}°C).",
+            location=entity.location,
+            affected_entity_ids=[entity.id],
+            world_state_id=world_state_id,
+            detected_at=now,
+            updated_at=now,
+        )
+
+    @staticmethod
+    def _crowd_risk(entity: WorldEntity, world_state_id: str, now: str) -> RiskState:
+        return RiskState(
+            id=f"risk-{uuid4()}",
+            risk_type="crowd-buildup",
+            severity="medium",
+            status="active",
+            description=f"Increased foot traffic expected near {entity.label}.",
+            location=entity.location,
+            affected_entity_ids=[entity.id],
             world_state_id=world_state_id,
             detected_at=now,
             updated_at=now,

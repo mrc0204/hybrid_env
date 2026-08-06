@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: hybrid-env-ai-core
+    env: python
+    plan: free
+    rootDir: apps/ai-core
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+
+  - type: web
+    name: hybrid-env-backend
+    env: node
+    plan: free
+    # Root left at the repo root (not apps/backend) so npm workspaces can
+    # resolve packages/contracts during install — see DEPLOYMENT.md.
+    buildCommand: npm install && npm run build -w apps/backend
+    startCommand: npm run start -w apps/backend
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      # Render assigns PORT dynamically; the backend already reads
+      # process.env.PORT (config/env.ts) so it's intentionally not set here.
+      - key: AI_CORE_URL
+        sync: false # fill in with the hybrid-env-ai-core service URL after its first deploy
+      - key: NOMINATIM_URL
+        value: https://nominatim.openstreetmap.org/search
+      - key: NOMINATIM_USER_AGENT
+        value: agentic-environment-intelligence/1.0
+      - key: ENVIRONMENT_POLL_INTERVAL_MS
+        value: 0 # disabled by default to stay within free-tier resource limits
+      - key: TOMTOM_API_KEY
+        sync: false # optional — omit to use the deterministic traffic fallback
+      - key: CORS_ORIGIN
+        sync: false # set to the deployed Vercel origin once known; defaults to "*" if unset
