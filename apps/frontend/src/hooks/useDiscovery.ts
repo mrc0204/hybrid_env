@@ -22,8 +22,6 @@ const IN_FLIGHT_ANIMATE_COUNT = 8; // stages 0-7 get timed animation
  */
 const IN_FLIGHT_BUDGET_MS = 8_000;
 
-
-
 /**
  * Structural constant: the AI Core has exactly 5 specialist agents.
  * Verified from: apps/ai-core/app/reasoning/agents/
@@ -77,7 +75,10 @@ function deriveMetrics(
   // sparse graphs may have fewer neighbors than NEAREST_NEIGHBOR_COUNT).
   // We report only the node count since the actual edge count isn't returned.
   if (entityCount > 0) {
-    out.push(["build-org-graph", `${entityCount} nodes · ${entityCount * NEIGHBORS_PER_ENTITY} edges`]);
+    out.push([
+      "build-org-graph",
+      `${entityCount} nodes · ${entityCount * NEIGHBORS_PER_ENTITY} edges`,
+    ]);
   }
 
   // Stage 8 — structural constant, documented above.
@@ -188,15 +189,8 @@ export function useDiscovery() {
       abortRef.current = new AbortController();
       const { signal } = abortRef.current;
 
-      const {
-        start,
-        advanceStage,
-        completeStage,
-        setCurrentStage,
-        setMetric,
-        succeed,
-        fail,
-      } = useDiscoveryStore.getState();
+      const { start, advanceStage, completeStage, setCurrentStage, setMetric, succeed, fail } =
+        useDiscoveryStore.getState();
 
       start(name);
 
@@ -273,9 +267,7 @@ export function useDiscovery() {
           if (idx < targetIdx) {
             completeStage(idx);
             setCurrentStage(idx + 1);
-            timersRef.current.push(
-              window.setTimeout(() => runCascade(idx + 1), 120),
-            );
+            timersRef.current.push(window.setTimeout(() => runCascade(idx + 1), 120));
           } else {
             // Reached stage 8: mark it complete, move immediately to stage 9 (consensus)
             completeStage(targetIdx);

@@ -29,3 +29,8 @@ apps/backend/.cache/
 
 # Claude Code local session state
 .claude/settings.local.json
+
+.vercel
+.env*
+# ...but the templates must stay tracked — the README tells you to copy them.
+!.env.example

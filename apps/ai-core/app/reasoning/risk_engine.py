@@ -108,9 +108,7 @@ class RiskEngine:
         )
 
     @staticmethod
-    def _heat_risk(
-        entity: WorldEntity, severity: str, world_state_id: str, now: str
-    ) -> RiskState:
+    def _heat_risk(entity: WorldEntity, severity: str, world_state_id: str, now: str) -> RiskState:
         temp_c = entity.attributes.get("temperatureC")
         return RiskState(
             id=f"risk-{uuid4()}",

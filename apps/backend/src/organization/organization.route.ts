@@ -12,16 +12,20 @@ export const organizationRouter = Router();
 
 const DiscoverBodySchema = z.object({
   name: z.string().trim().min(1, "Organization name is required"),
-  center: z.object({
-    lat: z.number(),
-    lng: z.number(),
-  }).optional(),
-  boundingBox: z.object({
-    south: z.number(),
-    west: z.number(),
-    north: z.number(),
-    east: z.number(),
-  }).optional(),
+  center: z
+    .object({
+      lat: z.number(),
+      lng: z.number(),
+    })
+    .optional(),
+  boundingBox: z
+    .object({
+      south: z.number(),
+      west: z.number(),
+      north: z.number(),
+      east: z.number(),
+    })
+    .optional(),
 });
 
 const ResolveMapsLinkSchema = z.object({

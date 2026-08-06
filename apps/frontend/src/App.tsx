@@ -73,7 +73,8 @@ export default function App() {
                 Environment Intelligence
               </h1>
               <p className="mt-2 text-[12px] leading-relaxed text-ink-muted">
-                Analyze a physical footprint to construct a live world model, map infrastructure risks, and deliberate personalized safety recommendations.
+                Analyze a physical footprint to construct a live world model, map infrastructure
+                risks, and deliberate personalized safety recommendations.
               </p>
             </div>
 
@@ -222,7 +223,9 @@ function LandingInput({
           placeholder="Enter location or organization name..."
           className={cn(
             "w-full bg-surface border border-line rounded-lg px-4 py-2.5 text-[12px] text-ink outline-none transition-all duration-300",
-            focused ? "border-cognition/40 bg-surface-raised shadow-[0_0_12px_rgba(139,156,255,0.06)]" : "hover:border-line-strong",
+            focused
+              ? "border-cognition/40 bg-surface-raised shadow-[0_0_12px_rgba(139,156,255,0.06)]"
+              : "hover:border-line-strong",
             "placeholder:text-ink-ghost",
           )}
         />

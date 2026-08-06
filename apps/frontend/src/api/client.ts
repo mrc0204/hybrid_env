@@ -33,10 +33,10 @@ export const FAMOUS_LANDMARKS: PlaceSuggestion[] = [
   { displayName: "Taj Mahal, Agra, Uttar Pradesh, India", lat: 27.1751, lng: 78.0421 },
   { displayName: "India Gate, Rajpath, New Delhi, Delhi, India", lat: 28.6129, lng: 77.2295 },
   { displayName: "Charminar, Hyderabad, Telangana, India", lat: 17.3616, lng: 78.4747 },
-  { displayName: "Gateway of India, Mumbai, Maharashtra, India", lat: 18.9220, lng: 72.8347 },
+  { displayName: "Gateway of India, Mumbai, Maharashtra, India", lat: 18.922, lng: 72.8347 },
   { displayName: "IIT Hyderabad, Kandi, Sangareddy, Telangana, India", lat: 17.5947, lng: 78.1228 },
   { displayName: "Hawa Mahal, Jaipur, Rajasthan, India", lat: 26.9239, lng: 75.8267 },
-  { displayName: "Red Fort, Netaji Subhash Marg, Delhi, India", lat: 28.6562, lng: 77.2410 },
+  { displayName: "Red Fort, Netaji Subhash Marg, Delhi, India", lat: 28.6562, lng: 77.241 },
   { displayName: "Qutub Minar, New Delhi, Delhi, India", lat: 28.5245, lng: 77.1855 },
 ];
 
@@ -52,8 +52,8 @@ export async function fetchPlaceSuggestions(query: string): Promise<PlaceSuggest
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(trimmed)}&limit=5&countrycodes=in&addressdetails=1`;
     const res = await fetch(url, {
       headers: {
-        "User-Agent": "agentic-environment-intelligence/1.0 (hackathon-demo-autocomplete)"
-      }
+        "User-Agent": "agentic-environment-intelligence/1.0 (hackathon-demo-autocomplete)",
+      },
     });
     const data = (await res.json()) as OsmSearchItem[];
     if (!Array.isArray(data)) return [];
@@ -61,12 +61,14 @@ export async function fetchPlaceSuggestions(query: string): Promise<PlaceSuggest
       displayName: item.display_name,
       lat: parseFloat(item.lat),
       lng: parseFloat(item.lon),
-      boundingBox: item.boundingbox ? {
-        south: parseFloat(item.boundingbox[0]),
-        north: parseFloat(item.boundingbox[1]),
-        west: parseFloat(item.boundingbox[2]),
-        east: parseFloat(item.boundingbox[3]),
-      } : undefined
+      boundingBox: item.boundingbox
+        ? {
+            south: parseFloat(item.boundingbox[0]),
+            north: parseFloat(item.boundingbox[1]),
+            west: parseFloat(item.boundingbox[2]),
+            east: parseFloat(item.boundingbox[3]),
+          }
+        : undefined,
     }));
   } catch (err) {
     console.error("Failed to fetch autocomplete suggestions", err);

@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# A newer push to the same branch makes an in-flight run obsolete.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    name: Node (contracts, backend, frontend)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # contracts compiles first: both apps consume its emitted dist/,
+      # not its TypeScript source.
+      - name: Build contracts
+        run: npm run build -w packages/contracts
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Build backend
+        run: npm run build -w apps/backend
+
+      - name: Build frontend
+        run: npm run build -w apps/frontend
+
+      # Run from the workspace so apps/backend/vitest.config.ts applies —
+      # it stubs ORG_MAX_ENTITIES and isolates the cache directory.
+      - name: Test backend
+        run: npm run test -w apps/backend
+
+  python:
+    name: Python (AI Core)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/ai-core
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: apps/ai-core/requirements-dev.txt
+
+      - run: pip install -r requirements-dev.txt
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Check formatting (black)
+        run: black --check .
+
+      - name: Test (pytest)
+        run: pytest -q

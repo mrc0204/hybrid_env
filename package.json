@@ -14,7 +14,8 @@
   "scripts": {
     "dev:backend": "npm run dev -w apps/backend",
     "dev:frontend": "npm run dev -w apps/frontend",
-    "build": "npm run build -w apps/backend && npm run build -w apps/frontend",
+    "build": "npm run build -w packages/contracts && npm run build -w apps/backend && npm run build -w apps/frontend",
+    "test": "npm run test -w apps/backend",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

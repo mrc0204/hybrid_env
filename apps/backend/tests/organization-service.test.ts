@@ -93,40 +93,64 @@ describe("OrganizationService.discover", () => {
     expect(fallback).not.toHaveBeenCalled();
   });
 
-  it("falls back when the organization is not recognized", async () => {
+  it("throws rather than silently substituting demo data for an unknown organization", async () => {
     const { service, fetchInfrastructure, cacheWriter, fallback } = buildService({
       geocode: () => Promise.resolve(null),
     });
 
-    const result = await service.discover("Not A Real Place");
+    // Deliberately not a silent fallback: answering a search for one place
+    // with the bundled campus graph would present demo data as if it were
+    // that place. The user is told to pick a suggestion instead.
+    await expect(service.discover("Not A Real Place")).rejects.toMatchObject({
+      statusCode: 404,
+      code: "NOT_FOUND",
+    });
 
-    expect(result.source).toBe("fallback");
     expect(fetchInfrastructure).not.toHaveBeenCalled();
     expect(cacheWriter).not.toHaveBeenCalled();
+    expect(fallback).not.toHaveBeenCalled();
+  });
+
+  it("still serves the bundled graph for the default campus when geocoding finds nothing", async () => {
+    const { service, fallback } = buildService({
+      geocode: () => Promise.resolve(null),
+    });
+
+    // The one case where substituting bundled data is honest — it *is* the
+    // demo campus, so the demo keeps working with no network at all.
+    const result = await service.discover("NIAT KKH Campus");
+
+    expect(result.source).toBe("fallback");
     expect(fallback).toHaveBeenCalledOnce();
   });
 
-  it("falls back when Nominatim fails", async () => {
+  it("throws when Nominatim fails for a non-default organization", async () => {
     const { service, fallback } = buildService({
       geocode: () => Promise.reject(new Error("Nominatim unreachable")),
     });
 
-    const result = await service.discover("Test Org");
-
-    expect(result.source).toBe("fallback");
-    expect(fallback).toHaveBeenCalledOnce();
+    await expect(service.discover("Test Org")).rejects.toMatchObject({
+      code: "DISCOVERY_FAILED",
+    });
+    expect(fallback).not.toHaveBeenCalled();
   });
 
-  it("falls back when Overpass fails", async () => {
+  it("degrades to zero entities when Overpass fails, rather than failing the request", async () => {
     const { service, cacheWriter, fallback } = buildService({
       fetchInfrastructure: () => Promise.reject(new Error("Overpass timed out")),
     });
 
+    // Infrastructure enriches the world model but isn't required for it:
+    // live weather + traffic still yield a complete recommendation. Overpass
+    // is a free, frequently-overloaded public API, so this path is common.
     const result = await service.discover("Test Org");
 
-    expect(result.source).toBe("fallback");
+    expect(result.source).toBe("live");
+    expect(result.entities).toHaveLength(0);
+    // Not cached — a later request should retry Overpass rather than pin
+    // the degraded result for the whole cache TTL.
     expect(cacheWriter).not.toHaveBeenCalled();
-    expect(fallback).toHaveBeenCalledOnce();
+    expect(fallback).not.toHaveBeenCalled();
   });
 
   it("treats a live result with zero matched entities as sparse, not a failure", async () => {

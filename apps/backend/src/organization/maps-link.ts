@@ -25,7 +25,12 @@ function extractCoords(text: string): GeoPoint | null {
     if (!match) continue;
     const lat = parseFloat(match[1]!);
     const lng = parseFloat(match[2]!);
-    if (Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+    if (
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      Math.abs(lat) <= 90 &&
+      Math.abs(lng) <= 180
+    ) {
       return { lat, lng };
     }
   }

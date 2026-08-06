@@ -1,6 +1,7 @@
 # Deployment Guide: Hybrid-Env Monorepo
 
 This guide outlines how to deploy the **Hybrid-Env** monorepo separately:
+
 1. **AI Core (Python)** on **Render** (Web Service)
 2. **Backend Express API (Node.js)** on **Render** (Web Service)
 3. **Frontend (Vite/React)** on **Vercel** (Static Hosting)
@@ -86,6 +87,7 @@ The frontend is a Vite app located in `apps/frontend`.
 ---
 
 ## Verification
+
 1. Once all three services are active, navigate to your Vercel deployment URL.
 2. Focus the search bar: you will see the **Famous Indian Landmarks** populate instantly.
 3. Select any landmark or search for a location in India:

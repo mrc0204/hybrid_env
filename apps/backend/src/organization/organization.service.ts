@@ -20,9 +20,15 @@ type LoadFallbackFn = typeof loadFallbackGraph;
  * ran, and every path returns the same shape with an honest `source` tag —
  * nothing downstream has to guess where the data came from.
  *
- * Never throws. A hackathon demo cannot be allowed to fail because a public
- * geocoding or OSM API had a bad moment; every failure mode collapses to the
- * bundled fallback graph instead of an error response.
+ * Degradation is deliberately asymmetric, because honesty beats availability
+ * once a real place is involved:
+ *  - Overpass (infrastructure) failing degrades to zero entities. It only
+ *    enriches the world model; weather + traffic still yield a recommendation.
+ *  - Geocoding failing for a *named* organization throws. Answering a search
+ *    for one place with the bundled campus graph would present demo data as
+ *    though it were that place.
+ *  - The default demo campus is the one exception: there, the bundled graph
+ *    *is* the honest answer, so the demo survives with no network at all.
  */
 export class OrganizationService {
   constructor(
@@ -71,7 +77,9 @@ export class OrganizationService {
         }
 
         logger.warn({ name }, "[organization] no geocoding match");
-        throw AppError.notFound(`Could not resolve location coordinates for "${name}". Please choose from the search suggestions.`);
+        throw AppError.notFound(
+          `Could not resolve location coordinates for "${name}". Please choose from the search suggestions.`,
+        );
       }
 
       // Infrastructure enriches the world model but is not required for it.
