@@ -1,0 +1,53 @@
+name: agentic-environment-intelligence
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aei-postgres
+    environment:
+      POSTGRES_USER: aei
+      POSTGRES_PASSWORD: aei
+      POSTGRES_DB: aei
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aei"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: aei-backend
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgresql://aei:aei@postgres:5432/aei
+      AI_CORE_URL: http://ai-core:8000
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./apps/backend:/app/apps/backend
+      - ./packages/contracts:/app/packages/contracts
+
+  ai-core:
+    build:
+      context: .
+      dockerfile: apps/ai-core/Dockerfile
+    container_name: aei-ai-core
+    environment:
+      PORT: 8000
+      BACKEND_URL: http://backend:4000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./apps/ai-core:/app/apps/ai-core
+
+volumes:
+  postgres-data:

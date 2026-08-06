@@ -1,0 +1,26 @@
+{
+  "name": "agentic-environment-intelligence",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agentic Environment Intelligence System — monorepo root",
+  "workspaces": [
+    "apps/backend",
+    "packages/contracts"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev -w apps/backend",
+    "build": "npm run build -w apps/backend",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.12.0",
+    "eslint": "^9.12.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.8.1"
+  }
+}

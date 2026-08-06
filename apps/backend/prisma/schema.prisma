@@ -1,0 +1,22 @@
+// Milestone 2 scope: connection plumbing only. Domain model tables
+// (WorldState, RiskState, Recommendation, ...) are added once the Backend
+// actually needs to persist them — building empty schemas around unused
+// domain models now would be database schema for its own sake.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Infrastructure-only placeholder: Prisma refuses to generate a client with
+/// zero models, and this milestone has no domain tables yet. Not used by the
+/// connectivity check (that runs a raw `SELECT 1`, which needs no table or
+/// migration) — remove this the moment a real domain model is added.
+model HealthCheck {
+  id        Int      @id @default(autoincrement())
+  checkedAt DateTime @default(now())
+}

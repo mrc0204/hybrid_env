@@ -1,0 +1,27 @@
+# Node
+node_modules/
+dist/
+npm-debug.log*
+
+# Env
+.env
+.env.local
+*.env.local
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.ruff_cache/
+
+# OS / editor
+.DS_Store
+*.log
+
+# Docker
+postgres-data/
+
+# Claude Code local session state
+.claude/settings.local.json
