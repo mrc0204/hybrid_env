@@ -26,13 +26,30 @@ The system runs end to end: live external APIs → Backend normalization →
 AI Core reasoning → Socket.IO broadcast.
 
 ```
-Milestone 1: Foundation & Contracts        done
-Milestone 2: Backend Foundation            done
+Milestone 1: Foundation & Contracts          done
+Milestone 2: Backend Foundation              done
 Milestone 3: AI Core / first cognitive loop  done
-Milestone 4: Backend <-> AI Core integration  <- you are here
-Milestone 5: Frontend
+Milestone 4: Backend <-> AI Core integration done
+Milestone 5: Frontend experience             <- you are here
 Milestone 6: Demo & Polish
 ```
+
+### Frontend
+
+```bash
+npm run dev:frontend      # http://localhost:5173
+```
+
+The interface is organised around a **Reasoning Spine** — the six cognitive
+stages (Perceive → Model → Assess → Simulate → Deliberate → Recommend), each
+producing a real domain model. A cycle travels down the spine live; any stage
+can be clicked to interrogate its artifact. Hovering an evidence chip
+cross-highlights its source stage and its marker on the map.
+
+It currently renders a local cognitive simulation so the experience runs
+without the full stack. Every component is typed against `@ai-env/contracts`
+rather than mock shapes, so connecting the live Backend is a matter of
+swapping the data source — see `src/api/client.ts` and `VITE_USE_MOCK`.
 
 ### The live pipeline
 

@@ -5,11 +5,13 @@
   "description": "Agentic Environment Intelligence System — monorepo root",
   "workspaces": [
     "apps/backend",
+    "apps/frontend",
     "packages/contracts"
   ],
   "scripts": {
     "dev:backend": "npm run dev -w apps/backend",
-    "build": "npm run build -w apps/backend",
+    "dev:frontend": "npm run dev -w apps/frontend",
+    "build": "npm run build -w apps/backend && npm run build -w apps/frontend",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

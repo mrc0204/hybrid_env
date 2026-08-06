@@ -4,7 +4,9 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["**/dist/**", "**/node_modules/**", "apps/ai-core/**", "apps/frontend/**"],
+    // ai-core is Python (ruff/black own it). The frontend IS linted — it was
+    // only excluded while it was an empty placeholder.
+    ignores: ["**/dist/**", "**/node_modules/**", "apps/ai-core/**"],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

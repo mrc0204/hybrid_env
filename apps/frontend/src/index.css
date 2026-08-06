@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-void text-ink antialiased;
+    font-feature-settings:
+      "cv02" 1,
+      "cv03" 1,
+      "cv04" 1;
+    /* The canvas never scrolls; panels own their own overflow. This keeps the
+       composition fixed and cinematic rather than page-like. */
+    overflow: hidden;
+  }
+
+  ::selection {
+    background: rgba(139, 156, 255, 0.28);
+  }
+
+  /* Scrollbars are part of the visual language, not a browser default. */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.16);
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-xl border border-line bg-surface backdrop-blur-xl;
+  }
+
+  /* Uppercase micro-labels. Used to title regions without competing with
+     content — hierarchy through treatment, not size. */
+  .eyebrow {
+    @apply font-mono text-micro uppercase text-ink-faint;
+  }
+
+  .numeric {
+    @apply font-mono tabular-nums;
+  }
+
+  /* A hairline that fades at both ends, so panel dividers read as drawn
+     rather than as boxes. */
+  .rule-fade {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.09) 18%,
+      rgba(255, 255, 255, 0.09) 82%,
+      transparent
+    );
+  }
+}
+
+/* Leaflet overrides — the default look would break the visual language
+   entirely, so the map is reduced to geometry and desaturated to sit behind
+   our own markers. */
+.leaflet-container {
+  background: #07080b !important;
+  font-family: inherit;
+}
+.leaflet-tile-pane {
+  filter: grayscale(0.7) brightness(0.55) contrast(1.15);
+}
+.leaflet-control-attribution {
+  background: rgba(7, 8, 11, 0.7) !important;
+  color: #3a3e4e !important;
+  font-size: 9px !important;
+  border: none !important;
+}
+.leaflet-control-attribution a {
+  color: #585d71 !important;
+}
+.leaflet-control-zoom {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
