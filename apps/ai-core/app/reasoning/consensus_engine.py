@@ -116,6 +116,8 @@ class ConsensusEngine:
         consensus_score: float,
     ) -> str:
         notes = [f"Resolved via confidence-weighted vote (consensus {consensus_score:.0%})."]
+        if critic_report.critique_notes:
+            notes.append(f"Gemini Critic Review [{critic_report.status.upper()}]: {critic_report.critique_notes}")
         if minority:
             notes.append(f"Minority opinion from: {', '.join(minority)}.")
         rejected_count = len(simulations) - 1

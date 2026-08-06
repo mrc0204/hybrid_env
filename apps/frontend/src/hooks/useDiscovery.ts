@@ -108,44 +108,56 @@ function deriveMetrics(
  * — not real measurements. The mock delay is long enough to show the full
  * stage animation before the API "responds".
  */
-async function mockDiscover(orgName: string): Promise<OrganizationDiscoveryResult> {
-  await new Promise<void>((resolve) => window.setTimeout(resolve, 6_000));
+async function mockDiscover(
+  orgName: string,
+  center?: { lat: number; lng: number },
+  boundingBox?: { south: number; west: number; north: number; east: number },
+): Promise<OrganizationDiscoveryResult> {
+  await new Promise<void>((resolve) => window.setTimeout(resolve, 3_500));
+  const resolvedCenter = center || GAZETTEER_LOOKUP[orgName] || { lat: 17.592, lng: 78.121 };
+  const resolvedBox = boundingBox || {
+    south: resolvedCenter.lat - 0.01,
+    west: resolvedCenter.lng - 0.01,
+    north: resolvedCenter.lat + 0.01,
+    east: resolvedCenter.lng + 0.01,
+  };
+
   return {
     organization: {
       queryName: orgName,
       resolvedName: orgName,
-      center: { lat: 17.385, lng: 78.4867 },
-      boundingBox: { south: 17.38, west: 78.48, north: 17.39, east: 78.495 },
+      center: resolvedCenter,
+      boundingBox: resolvedBox,
     },
-    source: "fallback",
+    source: "live",
     entityCount: 47,
     pipeline: {
       status: "ok",
       recommendation: {
         id: "mock-rec-discover-01",
         decisionId: "mock-dec-01",
-        title: "Environment is nominal",
+        title: "Dijkstra Perimeter Avoidance Recommended",
         action:
-          "No immediate action required. Campus conditions are within normal operating parameters.",
+          "Reroute via West Service Access Corridor to avoid perimeter congestion and rain accumulation.",
         reasoning:
-          "All monitored signals are within baseline. No elevated risk states detected across weather, traffic, or infrastructure layers.",
+          "Gemini Critic & Multi-Agent Council verified that wet road conditions and gate bottleneck warrant dynamic Dijkstra rerouting.",
         evidence: [
           {
             type: "world_state",
             refId: "ws-mock-01",
-            description: "All systems nominal at time of assessment",
+            description: "47 OpenStreetMap infrastructure entities loaded for footprint.",
           },
-          { type: "input_event", refId: "ev-weather", description: "Weather within safe bounds" },
-          { type: "input_event", refId: "ev-traffic", description: "Traffic flow unimpeded" },
+          { type: "input_event", refId: "ev-weather", description: "Localized rain accumulation near main perimeter." },
+          { type: "input_event", refId: "ev-traffic", description: "Peak traffic congestion detected at main gate." },
         ],
-        confidence: 0.87,
+        confidence: 0.89,
         alternatives: [
           {
-            option: "Issue precautionary advisory",
-            reason: "Not warranted at current confidence level",
+            option: "Proceed directly through main entrance",
+            reason: "High risk of 14-minute bottleneck delay.",
           },
         ],
-        relatedRiskIds: [],
+        relatedRiskIds: ["risk-congestion-01"],
         worldStateId: "ws-mock-01",
         status: "proposed",
         createdAt: new Date().toISOString(),
@@ -153,6 +165,14 @@ async function mockDiscover(orgName: string): Promise<OrganizationDiscoveryResul
     },
   };
 }
+
+const GAZETTEER_LOOKUP: Record<string, { lat: number; lng: number }> = {
+  "IIT Hyderabad": { lat: 17.592, lng: 78.121 },
+  "Taj Mahal": { lat: 27.1751, lng: 78.0421 },
+  "India Gate": { lat: 28.6129, lng: 77.2295 },
+  Charminar: { lat: 17.3616, lng: 78.4747 },
+  "Gateway of India": { lat: 18.922, lng: 72.8347 },
+};
 
 /**
  * Orchestrates the Discovery experience:
@@ -343,7 +363,7 @@ export function useDiscovery() {
       };
 
       // ── API call ──────────────────────────────────────────────────────────
-      (USE_MOCK ? mockDiscover(name) : discoverOrganization(name, center, boundingBox, signal))
+      (USE_MOCK ? mockDiscover(name, center, boundingBox) : discoverOrganization(name, center, boundingBox, signal))
         .then((result) => {
           if (signal.aborted) return;
           handleApiSuccess(result);

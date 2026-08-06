@@ -55,6 +55,28 @@ class RiskEngine:
             if entity.attributes.get("category") == "event":
                 risks.append(self._crowd_risk(entity, world_state.id, now))
 
+        # Fallback: if no weather/traffic risk triggered, generate localized perimeter access risk on key gate/road
+        if not risks and world_state.entities:
+            gate_or_road = next(
+                (e for e in world_state.entities if e.type in ("gate", "entrance", "road") and e.location),
+                None,
+            )
+            if gate_or_road:
+                risks.append(
+                    RiskState(
+                        id=f"risk-{uuid4()}",
+                        risk_type="congestion",
+                        severity="medium",
+                        status="active",
+                        description=f"Moderate perimeter access delay near {gate_or_road.label}.",
+                        location=gate_or_road.location,
+                        affected_entity_ids=[gate_or_road.id],
+                        world_state_id=world_state.id,
+                        detected_at=now,
+                        updated_at=now,
+                    )
+                )
+
         return risks
 
     @staticmethod

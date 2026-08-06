@@ -136,7 +136,7 @@ export const useCognition = create<CognitionState>((set, get) => ({
   },
 
   setTrace: (trace) =>
-    set({ trace, activeStage: -1, inspectedStage: null, highlightedRefId: null }),
+    set({ trace, activeStage: 5, inspectedStage: null, highlightedRefId: null }),
 
   inspectStage: (stage) => set({ inspectedStage: stage }),
   highlight: (refId) => set({ highlightedRefId: refId }),
