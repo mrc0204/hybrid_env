@@ -1,5 +1,5 @@
 import type { BaseEvent } from "./base";
-import type { UserContext } from "../domain";
+import type { GeoLocation, UserContext, WorldEntity } from "../domain";
 
 /**
  * Input events are raw signals entering the system from the outside world
@@ -61,7 +61,30 @@ export interface UserContextInputEvent extends BaseEvent<"input.user.context_cha
   };
 }
 
+/**
+ * Emitted once per organization discovery. Unlike the other input events,
+ * this one's payload already carries fully-normalized WorldEntity objects —
+ * the Organization Understanding Engine (Backend) does all OSM-specific
+ * normalization before this event exists, so the AI Core's PerceptionService
+ * only has to extend its entity list rather than map fields, exactly the same
+ * way weather/traffic entities are constructed from their own events.
+ */
+export interface OrganizationContextInputEvent extends BaseEvent<"input.organization.context_updated"> {
+  payload: {
+    organizationName: string;
+    resolvedName: string;
+    center: GeoLocation;
+    /** How this snapshot was obtained — surfaced so the reasoning trace stays honest about data provenance. */
+    source: "live" | "cache" | "fallback";
+    entities: WorldEntity[];
+  };
+}
+
 export type InputEvent =
-  WeatherInputEvent | TrafficInputEvent | AnnouncementInputEvent | UserContextInputEvent;
+  | WeatherInputEvent
+  | TrafficInputEvent
+  | AnnouncementInputEvent
+  | UserContextInputEvent
+  | OrganizationContextInputEvent;
 
 export type InputEventType = InputEvent["type"];

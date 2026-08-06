@@ -9,6 +9,7 @@ const SOURCE_LABEL: Record<string, string> = {
   "input.traffic.updated": "Traffic",
   "input.announcement.created": "Announcement",
   "input.user.context_changed": "User context",
+  "input.organization.context_updated": "Organization",
 };
 
 /**
@@ -88,6 +89,19 @@ function SignalDetails({ event }: { event: InputEvent }) {
   if (event.type === "input.announcement.created") {
     return (
       <span className="text-[12px] leading-relaxed text-ink-muted">{event.payload.title}</span>
+    );
+  }
+
+  if (event.type === "input.organization.context_updated") {
+    const p = event.payload;
+    return (
+      <>
+        <Badge tone="cognition">{p.entities.length} entities</Badge>
+        <Badge tone={p.source === "live" ? "low" : p.source === "cache" ? "neutral" : "medium"}>
+          {p.source}
+        </Badge>
+        <span className="text-[12px] leading-relaxed text-ink-muted">{p.resolvedName}</span>
+      </>
     );
   }
 

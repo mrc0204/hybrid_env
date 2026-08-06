@@ -1,5 +1,6 @@
 import { requestJson } from "../../clients/http";
 import { env } from "../../config/env";
+import type { LocationOverride } from "../location-override";
 
 /**
  * Normalized weather reading — provider-agnostic. Adding a second weather
@@ -18,7 +19,7 @@ export interface WeatherReading {
 
 export interface WeatherProvider {
   readonly name: string;
-  fetchCurrent(): Promise<WeatherReading>;
+  fetchCurrent(location?: LocationOverride): Promise<WeatherReading>;
 }
 
 /**
@@ -78,10 +79,11 @@ interface OpenMeteoResponse {
 export class OpenMeteoWeatherProvider implements WeatherProvider {
   readonly name = "open-meteo";
 
-  async fetchCurrent(): Promise<WeatherReading> {
+  async fetchCurrent(location?: LocationOverride): Promise<WeatherReading> {
+    const lat = location?.lat ?? env.ENVIRONMENT_LATITUDE;
+    const lng = location?.lng ?? env.ENVIRONMENT_LONGITUDE;
     const url =
-      `${env.WEATHER_API_URL}?latitude=${env.ENVIRONMENT_LATITUDE}` +
-      `&longitude=${env.ENVIRONMENT_LONGITUDE}` +
+      `${env.WEATHER_API_URL}?latitude=${lat}&longitude=${lng}` +
       `&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,weather_code` +
       `&hourly=temperature_2m,precipitation_probability&forecast_days=1`;
 
@@ -93,7 +95,7 @@ export class OpenMeteoWeatherProvider implements WeatherProvider {
 
     const current = raw.current ?? {};
     return {
-      location: env.ENVIRONMENT_LOCATION_NAME,
+      location: location?.label ?? env.ENVIRONMENT_LOCATION_NAME,
       condition: mapWmoCodeToCondition(current.weather_code ?? 0),
       temperatureC: current.temperature_2m ?? 0,
       precipitationMm: current.precipitation ?? 0,

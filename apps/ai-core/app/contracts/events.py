@@ -11,7 +11,14 @@ from typing import Annotated, Literal
 from pydantic import Field
 
 from app.contracts.base import BaseEvent, CamelModel
-from app.contracts.domain import Recommendation, RiskState, UserContext, WorldState
+from app.contracts.domain import (
+    GeoLocation,
+    Recommendation,
+    RiskState,
+    UserContext,
+    WorldEntity,
+    WorldState,
+)
 
 # --- Input events -----------------------------------------------------------
 # Raw signals entering the system: weather, traffic, campus announcements,
@@ -75,11 +82,32 @@ class UserContextInputEvent(BaseEvent):
     payload: UserContextInputPayload
 
 
+class OrganizationContextInputPayload(CamelModel):
+    """Already fully normalized by the Backend's Organization Understanding
+    Engine — payload.entities are real WorldEntity objects, so
+    PerceptionService only needs to extend its entity list, not map fields."""
+
+    organization_name: str
+    resolved_name: str
+    center: GeoLocation
+    source: Literal["live", "cache", "fallback"]
+    entities: list[WorldEntity]
+
+
+class OrganizationContextInputEvent(BaseEvent):
+    type: Literal["input.organization.context_updated"] = "input.organization.context_updated"
+    payload: OrganizationContextInputPayload
+
+
 # Tagged union: `type` is the discriminator, so a Backend-supplied event
 # parses into exactly the right model and a bad `type` produces a clear
 # validation error rather than a confusing best-effort match.
 InputEvent = Annotated[
-    WeatherInputEvent | TrafficInputEvent | AnnouncementInputEvent | UserContextInputEvent,
+    WeatherInputEvent
+    | TrafficInputEvent
+    | AnnouncementInputEvent
+    | UserContextInputEvent
+    | OrganizationContextInputEvent,
     Field(discriminator="type"),
 ]
 

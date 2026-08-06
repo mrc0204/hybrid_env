@@ -1,0 +1,92 @@
+{
+  "queryName": "NIAT KKH Campus",
+  "resolvedName": "NIAT KKH Campus, Hyderabad, Telangana, India",
+  "center": { "lat": 17.385, "lng": 78.4867 },
+  "boundingBox": { "south": 17.3795, "west": 78.481, "north": 17.3905, "east": 78.4925 },
+  "entities": [
+    {
+      "id": "fallback-building-main-academic",
+      "type": "building",
+      "label": "Main Academic Block",
+      "location": { "lat": 17.3849, "lng": 78.4868 },
+      "attributes": { "building": "university", "levels": "4" }
+    },
+    {
+      "id": "fallback-building-auditorium",
+      "type": "building",
+      "label": "Auditorium",
+      "location": { "lat": 17.3856, "lng": 78.4894 },
+      "attributes": { "building": "yes", "amenity": "events_venue" }
+    },
+    {
+      "id": "fallback-building-library",
+      "type": "building",
+      "label": "Library",
+      "location": { "lat": 17.3844, "lng": 78.4859 },
+      "attributes": { "building": "yes", "amenity": "library" }
+    },
+    {
+      "id": "fallback-gate-north",
+      "type": "gate",
+      "label": "North Gate",
+      "location": { "lat": 17.3891, "lng": 78.4849 },
+      "attributes": { "barrier": "gate", "access": "yes" }
+    },
+    {
+      "id": "fallback-gate-south",
+      "type": "gate",
+      "label": "South Gate",
+      "location": { "lat": 17.3812, "lng": 78.4881 },
+      "attributes": { "barrier": "gate", "access": "yes" }
+    },
+    {
+      "id": "fallback-road-north-approach",
+      "type": "road",
+      "label": "North Gate Approach Road",
+      "location": { "lat": 17.3878, "lng": 78.4855 },
+      "attributes": { "highway": "secondary" }
+    },
+    {
+      "id": "fallback-road-south-approach",
+      "type": "road",
+      "label": "South Gate Approach Road",
+      "location": { "lat": 17.3826, "lng": 78.4876 },
+      "attributes": { "highway": "secondary" }
+    },
+    {
+      "id": "fallback-footpath-central",
+      "type": "footpath",
+      "label": "Central Walkway",
+      "location": { "lat": 17.3851, "lng": 78.4875 },
+      "attributes": { "highway": "footway" }
+    },
+    {
+      "id": "fallback-parking-main",
+      "type": "parking",
+      "label": "Main Parking",
+      "location": { "lat": 17.3838, "lng": 78.4886 },
+      "attributes": { "amenity": "parking", "capacity": "220" }
+    },
+    {
+      "id": "fallback-amenity-cafeteria",
+      "type": "amenity",
+      "label": "Cafeteria",
+      "location": { "lat": 17.3847, "lng": 78.4881 },
+      "attributes": { "amenity": "fast_food" }
+    },
+    {
+      "id": "fallback-amenity-health-center",
+      "type": "amenity",
+      "label": "Health Center",
+      "location": { "lat": 17.3861, "lng": 78.4863 },
+      "attributes": { "amenity": "clinic" }
+    },
+    {
+      "id": "fallback-entrance-library",
+      "type": "entrance",
+      "label": "Library Entrance",
+      "location": { "lat": 17.3845, "lng": 78.4861 },
+      "attributes": { "entrance": "main" }
+    }
+  ]
+}

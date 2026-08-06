@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { environmentRouter } from "./environment.route";
+import { organizationRouter } from "../organization/organization.route";
 
 /**
  * Versioned API router. `/health` is deliberately NOT mounted here: it's an
@@ -10,3 +11,4 @@ import { environmentRouter } from "./environment.route";
 export const apiRouter = Router();
 
 apiRouter.use("/environment", environmentRouter);
+apiRouter.use("/organization", organizationRouter);

@@ -1,6 +1,7 @@
 import { requestJson } from "../../clients/http";
 import { env } from "../../config/env";
 import { logger } from "../../logging/logger";
+import type { LocationOverride } from "../location-override";
 
 export type CongestionLevel = "low" | "medium" | "high";
 
@@ -15,7 +16,7 @@ export interface TrafficReading {
 
 export interface TrafficProvider {
   readonly name: string;
-  fetchCurrent(): Promise<TrafficReading>;
+  fetchCurrent(location?: LocationOverride): Promise<TrafficReading>;
 }
 
 /**
@@ -49,9 +50,10 @@ export class TomTomTrafficProvider implements TrafficProvider {
 
   constructor(private readonly apiKey: string) {}
 
-  async fetchCurrent(): Promise<TrafficReading> {
-    const point = `${env.ENVIRONMENT_LATITUDE},${env.ENVIRONMENT_LONGITUDE}`;
-    const url = `${env.TRAFFIC_API_URL}?point=${point}&key=${this.apiKey}`;
+  async fetchCurrent(location?: LocationOverride): Promise<TrafficReading> {
+    const lat = location?.lat ?? env.ENVIRONMENT_LATITUDE;
+    const lng = location?.lng ?? env.ENVIRONMENT_LONGITUDE;
+    const url = `${env.TRAFFIC_API_URL}?point=${lat},${lng}&key=${this.apiKey}`;
 
     const raw = await requestJson<TomTomResponse>(url, {
       timeoutMs: env.EXTERNAL_API_TIMEOUT_MS,
@@ -66,7 +68,7 @@ export class TomTomTrafficProvider implements TrafficProvider {
     const freeFlowTravelTime = flow.freeFlowTravelTime ?? 0;
 
     return {
-      location: env.ENVIRONMENT_LOCATION_NAME,
+      location: location?.label ?? env.ENVIRONMENT_LOCATION_NAME,
       congestionLevel: congestionFromSpeedRatio(currentSpeed, freeFlowSpeed),
       averageSpeedKph: currentSpeed,
       travelTimeMinutes: Number((currentTravelTime / 60).toFixed(1)),
@@ -84,9 +86,9 @@ export class TomTomTrafficProvider implements TrafficProvider {
 export class FallbackTrafficProvider implements TrafficProvider {
   readonly name = "fallback-simulated";
 
-  fetchCurrent(): Promise<TrafficReading> {
+  fetchCurrent(location?: LocationOverride): Promise<TrafficReading> {
     return Promise.resolve({
-      location: env.ENVIRONMENT_LOCATION_NAME,
+      location: location?.label ?? env.ENVIRONMENT_LOCATION_NAME,
       congestionLevel: "medium",
       averageSpeedKph: 15,
       travelTimeMinutes: 12,

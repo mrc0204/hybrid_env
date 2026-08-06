@@ -1,7 +1,6 @@
-"""Perception Engine — Milestone 3 slice. Converts raw InputEvents into the
-WorldEntity objects and narrative summary a WorldState is built from. Real
-perception (entity resolution, deduplication across many sources) is a later
-concern; this handles exactly the three mock event types.
+"""Perception Engine. Converts raw InputEvents into the WorldEntity objects
+and narrative summary a WorldState is built from. Real perception (entity
+resolution, deduplication across many sources) is a later concern.
 """
 
 from app.contracts.domain import WorldEntity
@@ -68,6 +67,15 @@ class PerceptionService:
                     )
                 )
                 summary_parts.append(payload.title)
+
+            elif event.type == "input.organization.context_updated":
+                payload = event.payload
+                # Already fully normalized WorldEntity objects — extend, don't map.
+                entities.extend(payload.entities)
+                count = len(payload.entities)
+                summary_parts.append(
+                    f"{count} organization entities loaded ({payload.resolved_name})"
+                )
 
         summary = "; ".join(summary_parts) or "No significant environment signals."
         return entities, summary, source_event_ids

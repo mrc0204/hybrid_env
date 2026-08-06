@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { InputEvent, TrafficInputEvent, WeatherInputEvent } from "@ai-env/contracts";
 
 import { logger } from "../logging/logger";
+import type { LocationOverride } from "./location-override";
 import {
   OpenMeteoWeatherProvider,
   type WeatherProvider,
@@ -38,14 +39,19 @@ export class EnvironmentService {
     private readonly trafficProvider: TrafficProvider = createTrafficProvider(),
   ) {}
 
-  async collect(): Promise<EnvironmentSnapshot> {
+  /**
+   * @param location Overrides the configured default coordinates — used when
+   * collecting for a dynamically discovered organization rather than the
+   * static deployment location.
+   */
+  async collect(location?: LocationOverride): Promise<EnvironmentSnapshot> {
     const collectedAt = new Date().toISOString();
     const events: InputEvent[] = [];
     const failedSources: string[] = [];
 
     const [weather, traffic] = await Promise.allSettled([
-      this.weatherProvider.fetchCurrent(),
-      this.trafficProvider.fetchCurrent(),
+      this.weatherProvider.fetchCurrent(location),
+      this.trafficProvider.fetchCurrent(location),
     ]);
 
     if (weather.status === "fulfilled") {

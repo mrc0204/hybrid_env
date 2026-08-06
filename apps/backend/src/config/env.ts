@@ -43,6 +43,30 @@ const EnvSchema = z.object({
   // 0 disables the background scheduler; the pipeline can still be triggered
   // manually via POST /api/v1/environment/refresh.
   ENVIRONMENT_POLL_INTERVAL_MS: z.coerce.number().int().min(0).default(60_000),
+
+  // --- Organization Understanding Engine ---
+  NOMINATIM_URL: z.string().url().default("https://nominatim.openstreetmap.org/search"),
+  OVERPASS_URL: z.string().url().default("https://overpass-api.de/api/interpreter"),
+  // Nominatim's usage policy requires a descriptive User-Agent identifying the
+  // application; requests without one are liable to be blocked.
+  NOMINATIM_USER_AGENT: z
+    .string()
+    .default("agentic-environment-intelligence/0.1 (hackathon-demo; no-contact-configured)"),
+  NOMINATIM_TIMEOUT_MS: z.coerce.number().int().positive().default(8000),
+  // Give Overpass's own internal timeout a head start, then a margin, so we
+  // don't abort a query that was about to succeed.
+  OVERPASS_QUERY_TIMEOUT_S: z.coerce.number().int().positive().default(20),
+  OVERPASS_TIMEOUT_MS: z.coerce.number().int().positive().default(25_000),
+  // Defensive cap: an unexpectedly large bounding box (e.g. a city matched
+  // instead of a campus) should degrade gracefully, not return thousands of
+  // entities to the AI Core.
+  ORG_MAX_ENTITIES: z.coerce.number().int().positive().default(200),
+  ORG_CACHE_DIR: z.string().default(".cache/organizations"),
+  ORG_CACHE_TTL_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(7 * 24 * 60 * 60 * 1000),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

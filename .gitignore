@@ -24,5 +24,8 @@ venv/
 # Docker
 postgres-data/
 
+# Organization Understanding Engine — runtime discovery cache, not source
+apps/backend/.cache/
+
 # Claude Code local session state
 .claude/settings.local.json

@@ -4,6 +4,8 @@ import { logger } from "../logging/logger";
 export interface RequestOptions {
   method?: "GET" | "POST";
   body?: unknown;
+  /** Sent as-is; merged with (and overriding) the default content-type derived from `body`. */
+  headers?: Record<string, string>;
   timeoutMs: number;
   /** Number of *retries* after the initial attempt. 0 means try once. */
   maxRetries?: number;
@@ -37,8 +39,17 @@ async function delay(ms: number): Promise<void> {
  * process.
  */
 export async function requestJson<T>(url: string, options: RequestOptions): Promise<T> {
-  const { method = "GET", body, timeoutMs, maxRetries = 0, label } = options;
+  const { method = "GET", body, headers, timeoutMs, maxRetries = 0, label } = options;
   let lastError: AppError | undefined;
+
+  // String bodies (e.g. raw Overpass QL) are sent as-is; anything else is
+  // treated as a JSON payload, matching how every existing caller uses this.
+  const isStringBody = typeof body === "string";
+  const requestBody = body === undefined ? undefined : isStringBody ? body : JSON.stringify(body);
+  const defaultHeaders: Record<string, string> =
+    body !== undefined && !isStringBody ? { "content-type": "application/json" } : {};
+  const requestHeaders: Record<string, string> | undefined =
+    Object.keys(defaultHeaders).length || headers ? { ...defaultHeaders, ...headers } : undefined;
 
   for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
     const controller = new AbortController();
@@ -47,8 +58,8 @@ export async function requestJson<T>(url: string, options: RequestOptions): Prom
     try {
       const response = await fetch(url, {
         method,
-        headers: body ? { "content-type": "application/json" } : undefined,
-        body: body ? JSON.stringify(body) : undefined,
+        headers: requestHeaders,
+        body: requestBody,
         signal: controller.signal,
       });
 
