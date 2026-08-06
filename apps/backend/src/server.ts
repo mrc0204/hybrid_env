@@ -4,6 +4,7 @@ import { createApp } from "./app";
 import { env } from "./config/env";
 import { connectDatabase, disconnectDatabase } from "./db/prisma";
 import { logger } from "./logging/logger";
+import { startEnvironmentScheduler } from "./pipeline/environment.pipeline";
 import { initSocketServer } from "./realtime/socket";
 
 async function main(): Promise<void> {
@@ -24,8 +25,11 @@ async function main(): Promise<void> {
     logger.info(`[backend] listening on port ${env.PORT} (${env.NODE_ENV})`);
   });
 
+  const stopScheduler = startEnvironmentScheduler();
+
   const shutdown = async (signal: string): Promise<void> => {
     logger.info(`[backend] received ${signal}, shutting down`);
+    stopScheduler();
     httpServer.close();
     await disconnectDatabase();
     process.exit(0);

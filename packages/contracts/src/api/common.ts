@@ -22,9 +22,17 @@ export type ApiResponse<T> = ApiSuccess<T> | ApiError;
 
 export type ServiceName = "backend" | "ai-core";
 
+export type DependencyStatus = "ok" | "degraded" | "down";
+
 export interface HealthStatus {
   status: "ok" | "degraded" | "down";
   service: ServiceName;
   version: string;
   timestamp: string;
+  /**
+   * Health of downstream dependencies this service needs (database, AI Core,
+   * ...). A service reports "degraded" — not "down" — when it is itself
+   * running but a dependency is unavailable.
+   */
+  dependencies?: Record<string, DependencyStatus>;
 }

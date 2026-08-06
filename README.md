@@ -21,18 +21,41 @@ the event model and API envelope shared across all three.
 
 ## Status
 
-**Milestone 1 — Foundation & System Contracts.** Monorepo, tooling, shared
-contracts, and health endpoints only. No business logic, no AI reasoning, no
-frontend features yet.
+**Milestone 4 — Backend ↔ AI Core Integration & Live Environment Pipeline.**
+The system runs end to end: live external APIs → Backend normalization →
+AI Core reasoning → Socket.IO broadcast.
 
 ```
-Milestone 1: Foundation & Contracts   <- you are here
-Milestone 2: Backend Foundation
-Milestone 3: AI Cognitive Core
-Milestone 4: Frontend
-Milestone 5: Integration
+Milestone 1: Foundation & Contracts        done
+Milestone 2: Backend Foundation            done
+Milestone 3: AI Core / first cognitive loop  done
+Milestone 4: Backend <-> AI Core integration  <- you are here
+Milestone 5: Frontend
 Milestone 6: Demo & Polish
 ```
+
+### The live pipeline
+
+```
+Open-Meteo + TomTom  ->  Environment Service (normalize/validate)
+                     ->  InputEvent[]  ->  AI Core POST /reason
+                     ->  Recommendation  ->  Socket.IO broadcast
+```
+
+Realtime channels (names shared via `@ai-env/contracts`):
+`environment.updated`, `recommendation.generated`, `system.health`.
+
+Trigger a cycle manually (the scheduler also runs it every
+`ENVIRONMENT_POLL_INTERVAL_MS`):
+
+```bash
+curl -X POST http://localhost:4000/api/v1/environment/refresh
+```
+
+**No API keys required to run.** Weather uses Open-Meteo, which needs no key.
+Traffic uses TomTom when `TOMTOM_API_KEY` is set and otherwise falls back to a
+deterministic local provider, so the pipeline works on a fresh clone. See
+`apps/backend/.env.example`.
 
 ## Running locally (without Docker)
 

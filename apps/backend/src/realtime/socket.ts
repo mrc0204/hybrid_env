@@ -4,11 +4,12 @@ import { Server as SocketIOServer } from "socket.io";
 
 import { env } from "../config/env";
 import { logger } from "../logging/logger";
+import { registerSocketServer } from "./events";
 
 /**
- * Attaches Socket.IO to the HTTP server. No events are wired yet — that
- * starts once the Backend actually has something to push (recommendations,
- * notifications) in a later milestone. This just establishes the transport.
+ * Attaches Socket.IO to the HTTP server and registers it as the broadcast
+ * target for `realtime/events.ts`, which is where all outbound messages are
+ * actually sent from.
  */
 export function initSocketServer(httpServer: HttpServer): SocketIOServer {
   const io = new SocketIOServer(httpServer, {
@@ -23,5 +24,6 @@ export function initSocketServer(httpServer: HttpServer): SocketIOServer {
     });
   });
 
+  registerSocketServer(io);
   return io;
 }

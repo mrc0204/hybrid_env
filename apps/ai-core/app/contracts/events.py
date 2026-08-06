@@ -6,7 +6,9 @@ domain model (see domain.py) changed; they never redefine the domain shape
 themselves.
 """
 
-from typing import Literal
+from typing import Annotated, Literal
+
+from pydantic import Field
 
 from app.contracts.base import BaseEvent, CamelModel
 from app.contracts.domain import Recommendation, RiskState, UserContext, WorldState
@@ -16,12 +18,22 @@ from app.contracts.domain import Recommendation, RiskState, UserContext, WorldSt
 # user context changes. Consumed by the AI Core's Perception Engine.
 
 
+class WeatherForecastPoint(CamelModel):
+    time: str
+    temperature_c: float
+    precipitation_probability: float
+
+
 class WeatherInputPayload(CamelModel):
     location: str
+    # Normalized vocabulary the RiskEngine keys off: clear | cloudy | fog |
+    # light_rain | moderate_rain | heavy_rain | snow | thunderstorm.
     condition: str
     temperature_c: float
     precipitation_mm: float
     wind_kph: float
+    humidity_percent: float | None = None
+    forecast: list[WeatherForecastPoint] | None = None
 
 
 class WeatherInputEvent(BaseEvent):
@@ -33,6 +45,9 @@ class TrafficInputPayload(CamelModel):
     location: str
     congestion_level: Literal["low", "medium", "high"]
     average_speed_kph: float | None = None
+    travel_time_minutes: float | None = None
+    delay_seconds: float | None = None
+    route_status: Literal["open", "closed"] | None = None
 
 
 class TrafficInputEvent(BaseEvent):
@@ -60,7 +75,13 @@ class UserContextInputEvent(BaseEvent):
     payload: UserContextInputPayload
 
 
-InputEvent = WeatherInputEvent | TrafficInputEvent | AnnouncementInputEvent | UserContextInputEvent
+# Tagged union: `type` is the discriminator, so a Backend-supplied event
+# parses into exactly the right model and a bad `type` produces a clear
+# validation error rather than a confusing best-effort match.
+InputEvent = Annotated[
+    WeatherInputEvent | TrafficInputEvent | AnnouncementInputEvent | UserContextInputEvent,
+    Field(discriminator="type"),
+]
 
 # --- AI events ----------------------------------------------------------
 # Emitted by the Cognitive/Reasoning/Action Engines as domain models change.
