@@ -82,6 +82,8 @@ class SimulationResult(CamelModel):
     affected_risk_ids: list[str]
     success_probability: float
     estimated_cost: str | None = None
+    route_path: list[str] | None = None
+    dijkstra_cost: float | None = None
     generated_at: str
 
 

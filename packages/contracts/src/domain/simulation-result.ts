@@ -16,5 +16,9 @@ export interface SimulationResult {
   successProbability: number;
   /** Free-form cost estimate, e.g. "10 extra minutes walking" — kept as a string since units vary by domain. */
   estimatedCost?: string;
+  /** Calculated Dijkstra node path if route optimization was run. */
+  routePath?: string[];
+  /** Calculated Dijkstra impedance cost units. */
+  dijkstraCost?: number;
   generatedAt: string;
 }

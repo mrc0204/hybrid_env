@@ -70,7 +70,35 @@ export function SimulationArtifact({
               {sim.predictedOutcome}
             </p>
 
-            {sim.estimatedCost && (
+            {sim.routePath && sim.routePath.length > 0 && (
+              <div className="mt-2.5 rounded border border-cognition/20 bg-cognition/[0.04] p-2">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="font-mono text-[10px] font-semibold text-cognition uppercase tracking-wider">
+                    Dijkstra Shortest Path
+                  </span>
+                  {typeof sim.dijkstraCost === "number" && (
+                    <span className="font-mono text-[10px] font-bold text-cognition bg-cognition/15 px-1.5 py-0.5 rounded">
+                      {sim.dijkstraCost} Cost Units
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-1 text-[10.5px]">
+                  {sim.routePath.map((step, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1 font-mono text-[10.5px] text-ink-muted"
+                    >
+                      <span>{step}</span>
+                      {idx < sim.routePath!.length - 1 && (
+                        <span className="text-cognition font-bold">→</span>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {sim.estimatedCost && !sim.routePath && (
               <p className="mt-1 font-mono text-[10px] text-ink-ghost">
                 cost · {sim.estimatedCost}
               </p>

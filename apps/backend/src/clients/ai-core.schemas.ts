@@ -75,6 +75,8 @@ const SimulationResultSchema = z.object({
   affectedRiskIds: z.array(z.string()),
   successProbability: z.number().min(0).max(1),
   estimatedCost: z.string().optional().nullable(),
+  routePath: z.array(z.string()).optional().nullable(),
+  dijkstraCost: z.number().optional().nullable(),
   generatedAt: z.string(),
 });
 
