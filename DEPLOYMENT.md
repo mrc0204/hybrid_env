@@ -54,7 +54,7 @@ The backend is an Express server situated in `apps/backend`. It relies on the ro
    - **Name**: `hybrid-env-backend`
    - **Language**: `Node`
    - **Root Directory**: Leave empty/root `.` (so it has access to root `package.json` workspaces and configurations)
-   - **Build Command**: `npm install && npm run build -w apps/backend`
+   - **Build Command**: `npm install --include=dev && npm run build -w packages/contracts && npm run build -w apps/backend`
    - **Start Command**: `npm run start -w apps/backend`
 4. Add the following **Environment Variables** in the environment tab:
    - `PORT`: `4000` (or let Render bind it automatically)
