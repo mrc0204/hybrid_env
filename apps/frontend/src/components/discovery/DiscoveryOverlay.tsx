@@ -54,6 +54,21 @@ export function DiscoveryOverlay({ onCancel, onDismiss, onDiscover }: DiscoveryO
 
   const elapsed = useElapsed(startedAt, phase === "running");
 
+  // ESC key listener to dismiss overlay cleanly
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (phase === "running") {
+          onCancel();
+        } else {
+          onDismiss();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [phase, onCancel, onDismiss]);
+
   // Auto-dismiss on success after a short read window.
   useEffect(() => {
     if (phase !== "success") return;

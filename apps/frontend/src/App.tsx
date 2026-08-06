@@ -63,8 +63,8 @@ export default function App() {
             className="flex flex-col items-center gap-6"
           >
             {/* Branding badge */}
-            <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.25em] text-cognition">
-              <span className="h-1 w-1 rounded-full bg-cognition animate-pulse" />
+            <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.25em] text-cognition">
+              <span className="h-1.5 w-1.5 rounded-full bg-cognition animate-pulse" />
               Agentic Core
             </div>
 
@@ -87,10 +87,10 @@ export default function App() {
   }
 
   return (
-    <div className="relative flex h-full flex-col">
+    <div className="relative flex h-full flex-col overflow-y-auto lg:overflow-hidden">
       <AmbientField severity={severity} isThinking={isRunning} />
 
-      <div className="relative z-10 flex h-full flex-col">
+      <div className="relative z-10 flex h-full flex-col min-h-0">
         <TopBar onDiscover={discover} />
 
         <main className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto px-4 pb-4 lg:grid-cols-[300px_minmax(0,1fr)_400px] lg:overflow-hidden lg:px-7 lg:pb-7">
@@ -117,7 +117,7 @@ export default function App() {
             <PanelHeader
               label="Reasoning trace"
               detail={
-                <span className="font-mono text-[10px] text-ink-ghost">{trace.worldState.id}</span>
+                <span className="font-mono text-[11px] text-ink-ghost">{trace.worldState.id}</span>
               }
             />
             <StageDetail />
@@ -241,8 +241,8 @@ function LandingInput({
               className="absolute left-0 right-0 top-full mt-2 max-h-[240px] overflow-y-auto rounded-lg border border-white/15 bg-[#0a0b0e] shadow-[0_8px_32px_rgba(0,0,0,0.9)] z-50 py-1 text-left"
             >
               {value.trim().length < 3 && (
-                <li className="px-3.5 py-2 text-[9px] font-mono uppercase tracking-widest text-slate-300 border-b border-white/10 bg-[#14161f] select-none">
-                  Famous Indian Landmarks
+                <li className="px-3.5 py-2 text-[11px] font-mono uppercase tracking-widest text-slate-300 border-b border-white/10 bg-[#14161f] select-none">
+                  Famous Global Landmarks
                 </li>
               )}
               {suggestions.map((item, idx) => (
@@ -264,7 +264,7 @@ function LandingInput({
         type="submit"
         disabled={!value.trim()}
         className={cn(
-          "w-full rounded-lg bg-cognition py-2.5 font-mono text-[10px] uppercase tracking-wider text-void transition-all duration-300",
+          "w-full rounded-lg bg-cognition py-2.5 font-mono text-[11px] uppercase tracking-wider text-void transition-all duration-300",
           value.trim()
             ? "cursor-pointer hover:bg-cognition-bright hover:shadow-[0_0_12px_rgba(139,156,255,0.3)]"
             : "cursor-not-allowed opacity-35",
@@ -273,8 +273,8 @@ function LandingInput({
         Assess Footprint
       </button>
 
-      <span className="font-mono text-[8.5px] text-ink-ghost tracking-wide">
-        e.g., IIT Hyderabad, NIAT KKH Campus, or any OSM entity
+      <span className="font-mono text-[11px] text-ink-ghost tracking-wide">
+        e.g., Times Square, Eiffel Tower, Tokyo Station, Central Park, or any OSM entity
       </span>
     </form>
   );

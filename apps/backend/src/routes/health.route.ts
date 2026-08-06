@@ -17,12 +17,12 @@ healthRouter.get("/", async (_req, res) => {
   ]);
 
   const dependencies: Record<string, DependencyStatus> = {
-    database: isDatabaseConnected ? "ok" : "down",
+    database: isDatabaseConnected ? "ok" : "memory_mode",
     aiCore: aiCoreStatus,
   };
 
-  // The Backend itself is up; a failing dependency makes it degraded, not down.
-  const allHealthy = Object.values(dependencies).every((status) => status === "ok");
+  // The Backend itself is up; a failing/memory-mode dependency makes it degraded.
+  const allHealthy = isDatabaseConnected && aiCoreStatus === "ok";
 
   const body: ApiResponse<HealthStatus> = {
     success: true,

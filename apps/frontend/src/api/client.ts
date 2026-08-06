@@ -30,26 +30,24 @@ interface OsmSearchItem {
 }
 
 export const FAMOUS_LANDMARKS: PlaceSuggestion[] = [
-  { displayName: "Taj Mahal, Agra, Uttar Pradesh, India", lat: 27.1751, lng: 78.0421 },
-  { displayName: "India Gate, Rajpath, New Delhi, Delhi, India", lat: 28.6129, lng: 77.2295 },
-  { displayName: "Charminar, Hyderabad, Telangana, India", lat: 17.3616, lng: 78.4747 },
-  { displayName: "Gateway of India, Mumbai, Maharashtra, India", lat: 18.922, lng: 72.8347 },
+  { displayName: "Times Square, New York, NY, USA", lat: 40.758, lng: -73.9855 },
+  { displayName: "Eiffel Tower, Champ de Mars, Paris, France", lat: 48.8584, lng: 2.2945 },
+  { displayName: "Tokyo Station, Chiyoda City, Tokyo, Japan", lat: 35.6812, lng: 139.7671 },
+  { displayName: "Central Park, New York, NY, USA", lat: 40.7829, lng: -73.9654 },
+  { displayName: "Sydney Opera House, Sydney, NSW, Australia", lat: -33.8568, lng: 151.2153 },
   { displayName: "IIT Hyderabad, Kandi, Sangareddy, Telangana, India", lat: 17.5947, lng: 78.1228 },
-  { displayName: "Hawa Mahal, Jaipur, Rajasthan, India", lat: 26.9239, lng: 75.8267 },
-  { displayName: "Red Fort, Netaji Subhash Marg, Delhi, India", lat: 28.6562, lng: 77.241 },
-  { displayName: "Qutub Minar, New Delhi, Delhi, India", lat: 28.5245, lng: 77.1855 },
+  { displayName: "Taj Mahal, Agra, Uttar Pradesh, India", lat: 27.1751, lng: 78.0421 },
 ];
 
 /**
- * Autocomplete place suggestions fetched from the OpenStreetMap Nominatim search API.
+ * Autocomplete place suggestions fetched dynamically from OpenStreetMap Nominatim search API worldwide.
  * Debounced in the UI layer to prevent hitting OSM API limits.
- * Bound strictly to countrycodes=in (India).
  */
 export async function fetchPlaceSuggestions(query: string): Promise<PlaceSuggestion[]> {
   const trimmed = query.trim();
   if (trimmed.length < 3) return [];
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(trimmed)}&limit=5&countrycodes=in&addressdetails=1`;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(trimmed)}&limit=5&addressdetails=1`;
     const res = await fetch(url, {
       headers: {
         "User-Agent": "agentic-environment-intelligence/1.0 (hackathon-demo-autocomplete)",

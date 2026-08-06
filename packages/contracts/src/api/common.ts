@@ -22,7 +22,7 @@ export type ApiResponse<T> = ApiSuccess<T> | ApiError;
 
 export type ServiceName = "backend" | "ai-core";
 
-export type DependencyStatus = "ok" | "degraded" | "down";
+export type DependencyStatus = "ok" | "degraded" | "down" | "memory_mode";
 
 export interface HealthStatus {
   status: "ok" | "degraded" | "down";

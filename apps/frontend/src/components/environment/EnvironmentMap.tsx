@@ -83,7 +83,7 @@ export function EnvironmentMap() {
 
   const center = storeCenter || GAZETTEER.Campus!;
 
-  // CRITICAL FIX: activeStage is -1 when a discovery trace is loaded / completed.
+  // CRITICAL FIX: activeStage is 5 when a discovery trace is loaded / completed.
   // Both risks and route must be visible when idle (-1) or when at stage >= 2 / 3.
   const risksVisible = activeStage === -1 || activeStage >= 2;
   const routeVisible = activeStage === -1 || activeStage >= 3;
@@ -266,7 +266,7 @@ function BasemapToggle({
           onClick={() => onChange(id)}
           aria-pressed={active === id}
           className={cn(
-            "px-2.5 py-1 font-mono text-[9px] uppercase tracking-widest transition-colors duration-200",
+            "px-2.5 py-1 font-mono text-[11px] uppercase tracking-widest transition-colors duration-200",
             active === id
               ? "bg-cognition/15 text-cognition"
               : "text-ink-ghost hover:text-ink-faint",
@@ -365,7 +365,7 @@ export function MapLegend() {
       {severities.map((s) => (
         <div key={s} className="flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: SEVERITY_HEX[s] }} />
-          <span className="font-mono text-[9px] uppercase tracking-wider text-ink-faint">{s}</span>
+          <span className="font-mono text-[11px] uppercase tracking-wider text-ink-faint">{s}</span>
         </div>
       ))}
     </motion.div>

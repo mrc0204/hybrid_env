@@ -28,6 +28,10 @@ class RiskEngine:
         now = datetime.now(UTC).isoformat()
         risks: list[RiskState] = []
 
+        # Build a centroid from all entities that have real GeoLocation coordinates.
+        # Used to geo-locate weather/traffic risks whose location is a string label.
+        centroid = self._compute_centroid(world_state.entities)
+
         weather_entities = [e for e in world_state.entities if e.type == "weather"]
         traffic_entities = [e for e in world_state.entities if e.type == "traffic-segment"]
         event_entities = [e for e in world_state.entities if e.type == "campus-event"]
