@@ -222,11 +222,11 @@ function LandingInput({
           }}
           placeholder="Enter location or organization name..."
           className={cn(
-            "w-full bg-surface border border-line rounded-lg px-4 py-2.5 text-[12px] text-ink outline-none transition-all duration-300",
+            "w-full bg-[#0d0e12] border border-white/20 rounded-lg px-4 py-2.5 text-[12px] text-white outline-none transition-all duration-200",
             focused
-              ? "border-cognition/40 bg-surface-raised shadow-[0_0_12px_rgba(139,156,255,0.06)]"
-              : "hover:border-line-strong",
-            "placeholder:text-ink-ghost",
+              ? "border-slate-400 bg-[#12141a] shadow-[0_0_16px_rgba(0,0,0,0.6)]"
+              : "hover:border-white/35",
+            "placeholder:text-slate-400 font-normal",
           )}
         />
 
@@ -238,10 +238,10 @@ function LandingInput({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 6 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute left-0 right-0 top-full mt-2 max-h-[220px] overflow-y-auto rounded-lg border border-line bg-void/98 shadow-[0_4px_24px_rgba(0,0,0,0.75)] backdrop-blur-md z-50 py-1 text-left"
+              className="absolute left-0 right-0 top-full mt-2 max-h-[240px] overflow-y-auto rounded-lg border border-white/15 bg-[#0a0b0e] shadow-[0_8px_32px_rgba(0,0,0,0.9)] z-50 py-1 text-left"
             >
               {value.trim().length < 3 && (
-                <li className="px-3.5 py-1.5 text-[8.5px] font-mono uppercase tracking-widest text-cognition border-b border-line/10 bg-surface/30 select-none">
+                <li className="px-3.5 py-2 text-[9px] font-mono uppercase tracking-widest text-slate-300 border-b border-white/10 bg-[#14161f] select-none">
                   Famous Indian Landmarks
                 </li>
               )}
@@ -249,7 +249,7 @@ function LandingInput({
                 <li
                   key={idx}
                   onMouseDown={() => handleSelect(item)}
-                  className="px-3.5 py-2.5 text-[10px] text-ink-muted leading-normal hover:bg-surface hover:text-ink cursor-pointer border-b border-line/20 last:border-b-0 transition-colors duration-150 truncate"
+                  className="px-3.5 py-2.5 text-[11px] text-slate-200 leading-normal hover:bg-[#181a24] hover:text-white cursor-pointer border-b border-white/5 last:border-b-0 transition-colors duration-150 truncate font-normal"
                   title={item.displayName}
                 >
                   {item.displayName}
