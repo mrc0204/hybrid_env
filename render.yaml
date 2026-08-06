@@ -22,7 +22,7 @@ services:
     # fail with "Could not find a declaration file" errors without this.
     # packages/contracts must build before the backend: it's a workspace
     # dependency with its own compiled output (dist/), not resolved from source.
-    buildCommand: npm install --include=dev && npm run build -w packages/contracts && npm run build -w apps/backend
+    buildCommand: npm install --include=dev && npx prisma generate --schema=apps/backend/prisma/schema.prisma && npm run build -w packages/contracts && npm run build -w apps/backend
     startCommand: npm run start -w apps/backend
     envVars:
       - key: NODE_VERSION
