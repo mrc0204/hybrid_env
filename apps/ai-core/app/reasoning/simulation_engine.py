@@ -27,10 +27,11 @@ class SimulationEngine:
         now = datetime.now(UTC).isoformat()
 
         # Run Dijkstra Shortest Path Algorithm over dynamic road graph
-        route_eval = self.router.calculate_optimal_route(risks)
+        route_eval = self.router.calculate_optimal_route(risks, world_state)
         dijkstra_path = route_eval["path"]
         dijkstra_cost = route_eval["dijkstra_cost"]
         direct_cost = route_eval["direct_cost"]
+        direct_path = route_eval["direct_path"]
 
         if not risks:
             return [
@@ -59,13 +60,6 @@ class SimulationEngine:
         dijkstra_action = (
             f"Dijkstra Route Optimization: Take alternate route ({path_str}) to avoid congestion bottlenecks."
         )
-
-        direct_path = [
-            "Current Position",
-            "Main Corridor Junction",
-            "Main South Gate Exit",
-            "Regional Outer Ring Highway",
-        ]
 
         return [
             self._build(
