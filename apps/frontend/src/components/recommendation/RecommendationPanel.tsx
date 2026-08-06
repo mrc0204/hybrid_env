@@ -126,6 +126,50 @@ export function RecommendationPanel() {
                 <ConfidenceMeter confidence={rec.confidence} />
               </motion.div>
 
+              {/* ── Gemini Critic Review Card ─────────────────────────── */}
+              {trace.decision.governanceNotes && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3, duration: 0.5 }}
+                  className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-4 shadow-sm"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-emerald-400">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        className="h-3.5 w-3.5"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                        <path d="M2 17l10 5 10-5" />
+                        <path d="M2 12l10 5 10-5" />
+                      </svg>
+                      Gemini Critic Review
+                    </span>
+                    <span
+                      className={cn(
+                        "font-mono text-[10px] font-bold uppercase px-1.5 py-0.5 rounded border",
+                        trace.decision.governanceNotes.includes("[CHALLENGED]")
+                          ? "text-amber-400 border-amber-500/30 bg-amber-500/10"
+                          : "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
+                      )}
+                    >
+                      {trace.decision.governanceNotes.includes("[CHALLENGED]")
+                        ? "Challenged"
+                        : "Approved"}
+                    </span>
+                  </div>
+                  <p className="text-[12px] leading-relaxed text-ink-muted">
+                    {trace.decision.governanceNotes}
+                  </p>
+                </motion.div>
+              )}
+
               <div className="my-5 h-px rule-fade" />
 
               {/* Reasoning */}

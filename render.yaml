@@ -9,6 +9,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
+      - key: OPENROUTER_API_KEY
+        sync: false # set via Render dashboard — OpenRouter key for Gemini Critic Agent
 
   - type: web
     name: hybrid-env-backend

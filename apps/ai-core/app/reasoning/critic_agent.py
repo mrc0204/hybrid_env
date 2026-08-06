@@ -1,14 +1,16 @@
-"""Critic Agent — Gemini LLM & Deterministic Evaluation.
+"""Critic Agent — OpenRouter LLM & Deterministic Evaluation.
 
 Reviews the Expert Agents' consensus and WorldState — never produces a
 recommendation of its own.
 
+Uses OpenRouter API (google/gemini-flash-1.5) as the LLM backend.
 Evaluates evidence, flags weak assumptions, checks for conflicting risk states,
 and either approves or challenges the council's decision with explicit rationale.
 """
 
 from dataclasses import dataclass
 import json
+import logging
 import os
 import urllib.request
 from typing import Literal
@@ -16,10 +18,16 @@ from typing import Literal
 from app.contracts.domain import Decision, RiskState, SimulationResult, WorldState
 from app.reasoning.agents.base import AgentOpinion
 
+logger = logging.getLogger(__name__)
+
 Severity = Literal["note", "concern", "objection"]
 
 _LOW_CONFIDENCE_THRESHOLD = 0.5
 _WEAK_SUPPORT_THRESHOLD = 0.5
+
+# OpenRouter config
+_OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+_MODEL = "google/gemini-flash-1.5"
 
 
 @dataclass
@@ -36,6 +44,7 @@ class CriticReport:
     status: str = "approved"
     critique_notes: str = "Expert council consensus reviewed and verified against WorldState evidence."
     revised_rationale: str | None = None
+    llm_powered: bool = False
 
 
 class CriticAgent:
@@ -59,6 +68,14 @@ class CriticAgent:
         for op in opinions:
             findings.extend(self._review_opinion(op, by_id))
 
+        # ── Try live LLM critique via OpenRouter ────────────────────────────
+        llm_report = self._call_openrouter_critic(
+            world_state, risks, simulations, opinions, findings, disagreement_detected,
+        )
+        if llm_report:
+            return llm_report
+
+        # ── Deterministic fallback ──────────────────────────────────────────
         status = "challenged" if disagreement_detected else "approved"
         critique_notes = (
             "Critic detected divergent expert opinions — consensus weighting applied."
@@ -66,61 +83,110 @@ class CriticAgent:
             else "Expert council consensus approved. Alignment verified with current environment risk profile."
         )
 
-        # Attempt Google Gemini LLM API evaluation if API key is present
-        gemini_report = self._call_gemini_critic(world_state, risks, simulations, opinions)
-        if gemini_report:
-            return gemini_report
-
         return CriticReport(
             findings=findings,
             disagreement_detected=disagreement_detected,
             status=status,
             critique_notes=critique_notes,
+            llm_powered=False,
         )
 
-    def _call_gemini_critic(
+    def _call_openrouter_critic(
         self,
         world_state: WorldState | None,
         risks: list[RiskState] | None,
         simulations: list[SimulationResult],
         opinions: list[AgentOpinion],
+        findings: list[CriticFinding],
+        disagreement_detected: bool,
     ) -> CriticReport | None:
-        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        api_key = os.environ.get("OPENROUTER_API_KEY")
         if not api_key:
+            logger.info("OPENROUTER_API_KEY not set — falling back to deterministic critic")
             return None
 
-        try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-            prompt = (
-                "You are an independent Senior Gemini Critic Agent evaluating a multi-agent AI council decision for a physical digital twin.\n"
-                f"WorldState scope: {world_state.scope if world_state else 'unknown'}.\n"
-                f"Active Risks: {len(risks) if risks else 0} risks.\n"
-                f"Simulated Candidates: {[s.candidate_action for s in simulations]}.\n"
-                f"Expert Agent Votes: {[(op.agent_name, op.recommended_simulation_id, op.confidence) for op in opinions]}.\n"
-                "Evaluate if there are weak assumptions or unmitigated risks.\n"
-                "Respond ONLY with valid JSON: {\"status\": \"approved\"|\"challenged\", \"critique_notes\": \"<short evaluation>\", \"disagreement_detected\": false}"
+        risk_details = "None"
+        if risks:
+            risk_details = "; ".join(
+                f"{r.risk_type} ({r.severity}): {r.description}" for r in risks
             )
 
-            req_data = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode("utf-8")
+        sim_details = "; ".join(
+            f"'{s.candidate_action}' → {s.success_probability:.0%} success"
+            for s in simulations
+        )
+
+        vote_details = "; ".join(
+            f"{op.agent_name}: recommends '{op.recommended_simulation_id[:8]}…' "
+            f"(confidence {op.confidence:.0%}, evidence: {len(op.evidence)} items)"
+            for op in opinions
+        )
+
+        finding_details = "; ".join(
+            f"[{f.severity}] {f.target_agent}: {f.issue}" for f in findings
+        ) or "None"
+
+        prompt = (
+            "You are the independent Gemini Critic Agent for a multi-agent AI digital twin system. "
+            "Your role is to evaluate the Expert Council's consensus decision and identify weak assumptions, "
+            "unmitigated risks, or conflicting evidence. You NEVER produce your own recommendation.\n\n"
+            f"SCOPE: {world_state.scope if world_state else 'unknown'}\n"
+            f"ENTITY COUNT: {len(world_state.entities) if world_state else 0}\n"
+            f"ACTIVE RISKS: {risk_details}\n"
+            f"SIMULATED CANDIDATES: {sim_details}\n"
+            f"EXPERT VOTES: {vote_details}\n"
+            f"DETERMINISTIC FINDINGS: {finding_details}\n"
+            f"DISAGREEMENT DETECTED: {disagreement_detected}\n\n"
+            "Evaluate the council's decision. Respond with ONLY valid JSON (no markdown, no code fences):\n"
+            '{"status": "approved" or "challenged", '
+            '"critique_notes": "<2-3 sentence evaluation of the decision quality, risk coverage, and any blind spots>", '
+            '"disagreement_detected": true/false, '
+            '"revised_rationale": "<if challenged, explain what the council missed; if approved, null>"}'
+        )
+
+        try:
+            req_body = json.dumps({
+                "model": _MODEL,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.3,
+                "max_tokens": 300,
+            }).encode("utf-8")
+
             req = urllib.request.Request(
-                url, data=req_data, headers={"Content-Type": "application/json"}
+                _OPENROUTER_URL,
+                data=req_body,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {api_key}",
+                    "HTTP-Referer": "https://hybrid-env-frontend.vercel.app",
+                    "X-Title": "Environment Intelligence Critic Agent",
+                },
             )
-            with urllib.request.urlopen(req, timeout=4.0) as resp:
+
+            with urllib.request.urlopen(req, timeout=8.0) as resp:
                 result = json.loads(resp.read().decode("utf-8"))
-                text = (
-                    result.get("candidates", [{}])[0]
-                    .get("content", {})
-                    .get("parts", [{}])[0]
-                    .get("text", "")
-                )
-                parsed = json.loads(text.strip().strip("```json").strip("```"))
-                return CriticReport(
-                    findings=[],
-                    disagreement_detected=parsed.get("disagreement_detected", False),
-                    status=parsed.get("status", "approved"),
-                    critique_notes=parsed.get("critique_notes", "Gemini Critic verified council recommendations."),
-                )
-        except Exception:
+
+            text = result["choices"][0]["message"]["content"].strip()
+            # Strip any accidental code fences
+            if text.startswith("```"):
+                text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+            if text.endswith("```"):
+                text = text[:-3]
+            text = text.strip()
+
+            parsed = json.loads(text)
+            logger.info("OpenRouter Gemini Critic responded: %s", parsed.get("status"))
+
+            return CriticReport(
+                findings=findings,
+                disagreement_detected=parsed.get("disagreement_detected", disagreement_detected),
+                status=parsed.get("status", "approved"),
+                critique_notes=parsed.get("critique_notes", "Gemini Critic evaluated council decision."),
+                revised_rationale=parsed.get("revised_rationale"),
+                llm_powered=True,
+            )
+        except Exception as exc:
+            logger.warning("OpenRouter Gemini Critic call failed: %s — using deterministic fallback", exc)
             return None
 
     @staticmethod
