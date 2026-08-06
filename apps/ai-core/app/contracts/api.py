@@ -3,6 +3,7 @@
 from typing import Generic, Literal, TypeVar
 
 from app.contracts.base import CamelModel
+from app.contracts.domain import Decision, Recommendation, RiskState, SimulationResult, WorldState
 from app.contracts.events import InputEvent
 
 ServiceName = Literal["backend", "ai-core"]
@@ -44,3 +45,20 @@ class ReasonRequest(CamelModel):
     """
 
     events: list[InputEvent]
+
+
+class ReasonTrace(CamelModel):
+    """Mirrors packages/contracts/src/api/trace.ts.
+
+    The full cognitive trace behind the most recent /reason call — served by
+    GET /trace/latest so the Frontend's Reasoning Spine can show real
+    WorldState/RiskState/SimulationResult/Decision, not just the final
+    Recommendation. /reason's own response is unchanged.
+    """
+
+    input_events: list[InputEvent]
+    world_state: WorldState
+    risks: list[RiskState]
+    simulations: list[SimulationResult]
+    decision: Decision
+    recommendation: Recommendation

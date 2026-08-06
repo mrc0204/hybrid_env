@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { environmentRouter } from "./environment.route";
+import { traceRouter } from "./trace.route";
 import { organizationRouter } from "../organization/organization.route";
 
 /**
@@ -12,3 +13,4 @@ export const apiRouter = Router();
 
 apiRouter.use("/environment", environmentRouter);
 apiRouter.use("/organization", organizationRouter);
+apiRouter.use("/trace", traceRouter);

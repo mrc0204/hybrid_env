@@ -1,7 +1,11 @@
 export interface ExpertVote {
   expertName: string;
+  /** Short verdict — "Endorse <candidate>" or "Dissent" for minority opinions. */
   vote: string;
   rationale: string;
+  /** This agent's own confidence in its vote, 0..1. */
+  confidence?: number;
+  evidence?: string[];
 }
 
 /**

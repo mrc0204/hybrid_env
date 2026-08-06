@@ -80,6 +80,8 @@ interface CognitionState {
   advanceStage: () => void;
   completeCycle: () => void;
   nextScenario: () => void;
+  /** Live-data counterpart to nextScenario: sets a fetched trace directly, no mock rotation. */
+  setTrace: (trace: CognitiveTrace) => void;
   inspectStage: (stage: StageId | null) => void;
   highlight: (refId: string | null) => void;
 }
@@ -126,6 +128,9 @@ export const useCognition = create<CognitionState>((set, get) => ({
       highlightedRefId: null,
     });
   },
+
+  setTrace: (trace) =>
+    set({ trace, activeStage: -1, inspectedStage: null, highlightedRefId: null }),
 
   inspectStage: (stage) => set({ inspectedStage: stage }),
   highlight: (refId) => set({ highlightedRefId: refId }),

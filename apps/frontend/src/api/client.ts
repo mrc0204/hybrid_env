@@ -1,4 +1,4 @@
-import type { ApiResponse, HealthStatus, Recommendation } from "@ai-env/contracts";
+import type { ApiResponse, HealthStatus, ReasonTrace, Recommendation } from "@ai-env/contracts";
 import { REALTIME_CHANNELS } from "@ai-env/contracts";
 
 /**
@@ -34,6 +34,18 @@ interface PipelineResult {
 export async function triggerEnvironmentRefresh(): Promise<PipelineResult> {
   const res = await fetch("/api/v1/environment/refresh", { method: "POST" });
   const body = (await res.json()) as ApiResponse<PipelineResult>;
+  if (!body.success) throw new Error(body.error.message);
+  return body.data;
+}
+
+/**
+ * The full multi-agent cognitive trace behind the most recent recommendation
+ * — every Expert Agent's vote, not just the final answer. Powers the live
+ * branch of `useCognitiveCycle` (see that file for how USE_MOCK gates it).
+ */
+export async function fetchLatestTrace(): Promise<ReasonTrace> {
+  const res = await fetch("/api/v1/trace/latest");
+  const body = (await res.json()) as ApiResponse<ReasonTrace>;
   if (!body.success) throw new Error(body.error.message);
   return body.data;
 }

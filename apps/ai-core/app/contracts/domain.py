@@ -90,8 +90,11 @@ class SimulationResult(CamelModel):
 
 class ExpertVote(CamelModel):
     expert_name: str
+    # Short verdict — "Endorse <candidate>" or "Dissent" for minority opinions.
     vote: str
     rationale: str
+    confidence: float | None = None
+    evidence: list[str] | None = None
 
 
 class Decision(CamelModel):

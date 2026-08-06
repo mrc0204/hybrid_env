@@ -83,4 +83,68 @@ describe("AiCoreClient", () => {
 
     expect(status).toBe("degraded");
   });
+
+  it("returns the full trace, including expert votes, from a valid response", async () => {
+    const worldState = {
+      id: "ws-1",
+      scope: "test",
+      version: 1,
+      generatedAt: new Date().toISOString(),
+      summary: "test",
+      entities: [],
+      sourceEventIds: [],
+    };
+    const simulation = {
+      id: "sim-1",
+      worldStateId: "ws-1",
+      candidateAction: "action",
+      predictedOutcome: "outcome",
+      affectedRiskIds: [],
+      successProbability: 0.9,
+      generatedAt: new Date().toISOString(),
+    };
+    const decision = {
+      id: "decision-1",
+      worldStateId: "ws-1",
+      chosenSimulationResultId: "sim-1",
+      consideredSimulationResultIds: ["sim-1"],
+      consensusScore: 1,
+      expertVotes: [
+        {
+          expertName: "Safety Agent",
+          vote: "Endorse action",
+          rationale: "r",
+          confidence: 0.9,
+          evidence: ["e"],
+        },
+      ],
+      governanceStatus: "approved",
+      rationale: "r",
+      decidedAt: new Date().toISOString(),
+    };
+    mockFetchOnce({
+      success: true,
+      data: {
+        inputEvents: [],
+        worldState,
+        risks: [],
+        simulations: [simulation],
+        decision,
+        recommendation: validRecommendation,
+      },
+    });
+
+    const trace = await new AiCoreClient("http://ai-core", 1000, 0).getLatestTrace();
+
+    expect(trace.decision.expertVotes).toHaveLength(1);
+    expect(trace.recommendation.id).toBe("rec-1");
+  });
+
+  it("rejects a trace response missing required fields", async () => {
+    mockFetchOnce({ success: true, data: { worldState: { id: "ws-1" } } });
+
+    await expect(new AiCoreClient("http://ai-core", 1000, 0).getLatestTrace()).rejects.toThrow(
+      /does not match the ReasonTrace contract/,
+    );
+  });
 });

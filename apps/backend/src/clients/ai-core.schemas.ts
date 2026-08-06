@@ -44,6 +44,90 @@ export const ReasonResponseSchema = z.object({
   data: RecommendationSchema,
 });
 
+const ExpertVoteSchema = z.object({
+  expertName: z.string(),
+  vote: z.string(),
+  rationale: z.string(),
+  confidence: z.number().min(0).max(1).optional(),
+  evidence: z.array(z.string()).optional(),
+});
+
+const DecisionSchema = z.object({
+  id: z.string(),
+  worldStateId: z.string(),
+  goalStateId: z.string().optional().nullable(),
+  chosenSimulationResultId: z.string(),
+  consideredSimulationResultIds: z.array(z.string()),
+  consensusScore: z.number().min(0).max(1),
+  expertVotes: z.array(ExpertVoteSchema).optional().nullable(),
+  governanceStatus: z.enum(["approved", "rejected", "pending_human_approval"]),
+  governanceNotes: z.string().optional().nullable(),
+  rationale: z.string(),
+  decidedAt: z.string(),
+});
+
+const SimulationResultSchema = z.object({
+  id: z.string(),
+  worldStateId: z.string(),
+  goalStateId: z.string().optional().nullable(),
+  candidateAction: z.string(),
+  predictedOutcome: z.string(),
+  affectedRiskIds: z.array(z.string()),
+  successProbability: z.number().min(0).max(1),
+  estimatedCost: z.string().optional().nullable(),
+  generatedAt: z.string(),
+});
+
+const RiskStateSchema = z.object({
+  id: z.string(),
+  riskType: z.string(),
+  severity: z.enum(["low", "medium", "high", "critical"]),
+  status: z.enum(["active", "monitoring", "resolved"]),
+  description: z.string(),
+  location: z.unknown().optional().nullable(),
+  affectedEntityIds: z.array(z.string()),
+  worldStateId: z.string(),
+  detectedAt: z.string(),
+  updatedAt: z.string(),
+  resolvedAt: z.string().optional().nullable(),
+});
+
+const WorldEntitySchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  label: z.string(),
+  location: z.unknown().optional().nullable(),
+  attributes: z.record(z.string(), z.unknown()),
+  updatedAt: z.string(),
+});
+
+const WorldStateSchema = z.object({
+  id: z.string(),
+  scope: z.string(),
+  version: z.number(),
+  generatedAt: z.string(),
+  summary: z.string(),
+  entities: z.array(WorldEntitySchema),
+  sourceEventIds: z.array(z.string()),
+});
+
+// InputEvent is a wire-validated discriminated union on the AI Core side
+// already; the Backend just needs to know it's an array of objects to pass
+// through to the frontend, not re-validate every variant.
+export const ReasonTraceSchema = z.object({
+  inputEvents: z.array(z.record(z.string(), z.unknown())),
+  worldState: WorldStateSchema,
+  risks: z.array(RiskStateSchema),
+  simulations: z.array(SimulationResultSchema),
+  decision: DecisionSchema,
+  recommendation: RecommendationSchema,
+});
+
+export const TraceResponseSchema = z.object({
+  success: z.literal(true),
+  data: ReasonTraceSchema,
+});
+
 export const HealthResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({

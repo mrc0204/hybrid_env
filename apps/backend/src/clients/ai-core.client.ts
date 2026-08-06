@@ -1,9 +1,9 @@
-import type { InputEvent, Recommendation } from "@ai-env/contracts";
+import type { InputEvent, ReasonTrace, Recommendation } from "@ai-env/contracts";
 
 import { env } from "../config/env";
 import { AppError } from "../errors/app-error";
 import { logger } from "../logging/logger";
-import { HealthResponseSchema, ReasonResponseSchema } from "./ai-core.schemas";
+import { HealthResponseSchema, ReasonResponseSchema, TraceResponseSchema } from "./ai-core.schemas";
 import { requestJson } from "./http";
 
 /**
@@ -41,6 +41,33 @@ export class AiCoreClient {
     }
 
     return parsed.data.data as Recommendation;
+  }
+
+  /**
+   * The full cognitive trace behind the most recent /reason call — every
+   * intermediate artifact (WorldState, risks, simulations, the Decision with
+   * all five agents' votes), not just the final Recommendation. Used to feed
+   * the Frontend's Reasoning Spine with live data instead of mocks.
+   */
+  async getLatestTrace(): Promise<ReasonTrace> {
+    const raw = await requestJson<unknown>(`${this.baseUrl}/trace/latest`, {
+      timeoutMs: this.timeoutMs,
+      maxRetries: this.maxRetries,
+      label: "AI Core /trace/latest",
+    });
+
+    const parsed = TraceResponseSchema.safeParse(raw);
+    if (!parsed.success) {
+      logger.error({ issues: parsed.error.issues }, "[ai-core] invalid /trace/latest response");
+      throw new AppError(
+        502,
+        "AI_CORE_INVALID_RESPONSE",
+        "AI Core returned a response that does not match the ReasonTrace contract",
+        parsed.error.issues,
+      );
+    }
+
+    return parsed.data.data as unknown as ReasonTrace;
   }
 
   /**
