@@ -1,6 +1,5 @@
 {
-  "installCommand": "npm install",
-  "buildCommand": "npm run build -w apps/frontend",
-  "outputDirectory": "apps/frontend/dist",
-  "framework": null
+  "name": "hybrid-env-frontend",
+  "buildCommand": "npm run build -w packages/contracts && npm run build -w apps/frontend",
+  "outputDirectory": "apps/frontend/dist"
 }

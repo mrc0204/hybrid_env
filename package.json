@@ -2,6 +2,9 @@
   "name": "agentic-environment-intelligence",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "description": "Agentic Environment Intelligence System — monorepo root",
   "workspaces": [
     "apps/backend",
