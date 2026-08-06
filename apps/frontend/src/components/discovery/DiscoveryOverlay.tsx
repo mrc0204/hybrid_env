@@ -11,6 +11,7 @@ import {
   type DiscoveryPhase,
   type StageMetrics,
 } from "@/store/discoveryStore";
+import { useCognition } from "@/store/cognition";
 
 type DiscoverFn = (
   orgName: string,
@@ -326,6 +327,11 @@ function SuccessPanel({
   orgName: string;
   recommendation: Recommendation;
 }) {
+  const trace = useCognition((s) => s.trace);
+  const chosenSim = trace?.simulations?.find(
+    (s) => s.id === trace.decision?.chosenSimulationResultId,
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.97, y: 10 }}
@@ -353,6 +359,35 @@ function SuccessPanel({
       <div className="w-full rounded-lg border border-line-subtle bg-surface p-4">
         <span className="eyebrow">Recommendation</span>
         <p className="mt-2 text-[14px] font-light leading-snug text-ink">{recommendation.action}</p>
+
+        {chosenSim?.routePath && chosenSim.routePath.length > 0 && (
+          <div className="mt-3.5 rounded border border-cognition/30 bg-cognition/[0.08] p-3 text-left">
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <span className="font-mono text-[9.5px] font-semibold text-cognition uppercase tracking-wider">
+                Dijkstra Shortest Path
+              </span>
+              {typeof chosenSim.dijkstraCost === "number" && (
+                <span className="font-mono text-[9.5px] font-bold text-cognition bg-cognition/20 px-1.5 py-0.5 rounded">
+                  {chosenSim.dijkstraCost} Cost Units
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-1 text-[11px]">
+              {chosenSim.routePath.map((step: string, idx: number) => (
+                <span
+                  key={idx}
+                  className="inline-flex items-center gap-1 font-mono text-[11px] text-ink-muted"
+                >
+                  <span className="text-ink font-medium">{step}</span>
+                  {idx < chosenSim.routePath!.length - 1 && (
+                    <span className="text-cognition font-bold">→</span>
+                  )}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mt-3 flex items-center gap-2">
           <div className="h-1 flex-1 overflow-hidden rounded-full bg-line">
             <motion.div
