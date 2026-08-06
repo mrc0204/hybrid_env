@@ -75,6 +75,48 @@ export function RecommendationPanel() {
                 {rec.action}
               </motion.h1>
 
+              {/* Dijkstra Optimal Route guidance box */}
+              {(() => {
+                const chosenSim = trace.simulations.find(
+                  (s) => s.id === trace.decision.chosenSimulationResultId,
+                );
+                if (!chosenSim?.routePath || chosenSim.routePath.length === 0) return null;
+
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15, duration: 0.5 }}
+                    className="mt-4 rounded-xl border border-cognition/30 bg-cognition/[0.08] p-3.5 shadow-sm"
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="font-mono text-[11px] font-semibold text-cognition uppercase tracking-wider flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-cognition animate-pulse" />
+                        Dijkstra Shortest/Least-Cost Route
+                      </span>
+                      {typeof chosenSim.dijkstraCost === "number" && (
+                        <span className="font-mono text-[11px] font-bold text-cognition bg-cognition/20 px-2 py-0.5 rounded border border-cognition/30">
+                          {chosenSim.dijkstraCost} Cost Units
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5 text-[12px]">
+                      {chosenSim.routePath.map((step, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1.5 font-mono text-[12px] text-ink-muted bg-surface px-2.5 py-1 rounded-md border border-line-subtle"
+                        >
+                          <span className="text-ink font-medium">{step}</span>
+                          {idx < chosenSim.routePath!.length - 1 && (
+                            <span className="text-cognition font-bold">→</span>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  </motion.div>
+                );
+              })()}
+
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
