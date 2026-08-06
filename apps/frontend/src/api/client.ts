@@ -37,7 +37,51 @@ export const FAMOUS_LANDMARKS: PlaceSuggestion[] = [
   { displayName: "Sydney Opera House, Sydney, NSW, Australia", lat: -33.8568, lng: 151.2153 },
   { displayName: "IIT Hyderabad, Kandi, Sangareddy, Telangana, India", lat: 17.5947, lng: 78.1228 },
   { displayName: "Taj Mahal, Agra, Uttar Pradesh, India", lat: 27.1751, lng: 78.0421 },
+  { displayName: "Hyderabad, Telangana, India", lat: 17.385, lng: 78.4867 },
+  { displayName: "Bengaluru, Karnataka, India", lat: 12.9716, lng: 77.5946 },
+  { displayName: "Mumbai, Maharashtra, India", lat: 19.076, lng: 72.8777 },
+  { displayName: "New Delhi, Delhi, India", lat: 28.6139, lng: 77.209 },
+  { displayName: "Jaipur, Rajasthan, India", lat: 26.9124, lng: 75.7873 },
+  { displayName: "Chennai, Tamil Nadu, India", lat: 13.0827, lng: 80.2707 },
+  { displayName: "Kolkata, West Bengal, India", lat: 22.5726, lng: 88.3639 },
 ];
+
+/**
+ * Reverse geocodes latitude/longitude coordinates to a human-readable place suggestion.
+ */
+export async function reverseGeocodeLocation(lat: number, lng: number): Promise<PlaceSuggestion> {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "agentic-environment-intelligence/1.0 (hackathon-demo-reverse)",
+      },
+    });
+    const data = await res.json();
+    if (data && data.display_name) {
+      return {
+        displayName: data.display_name,
+        lat,
+        lng,
+        boundingBox: data.boundingbox
+          ? {
+              south: parseFloat(data.boundingbox[0]),
+              north: parseFloat(data.boundingbox[1]),
+              west: parseFloat(data.boundingbox[2]),
+              east: parseFloat(data.boundingbox[3]),
+            }
+          : undefined,
+      };
+    }
+  } catch (err) {
+    console.warn("Reverse geocoding failed", err);
+  }
+  return {
+    displayName: `Current Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+    lat,
+    lng,
+  };
+}
 
 /**
  * Autocomplete place suggestions fetched dynamically from OpenStreetMap Nominatim search API worldwide.

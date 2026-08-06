@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
-import { fetchPlaceSuggestions, type PlaceSuggestion, FAMOUS_LANDMARKS } from "@/api/client";
+import { fetchPlaceSuggestions, reverseGeocodeLocation, type PlaceSuggestion, FAMOUS_LANDMARKS } from "@/api/client";
 
 import { AmbientField } from "@/components/ambient/AmbientField";
 import { DiscoveryOverlay } from "@/components/discovery/DiscoveryOverlay";
@@ -163,6 +163,7 @@ function LandingInput({
   const [focused, setFocused] = useState(false);
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [locating, setLocating] = useState(false);
 
   useEffect(() => {
     const trimmed = value.trim();
@@ -201,6 +202,28 @@ function LandingInput({
     setIsOpen(false);
   };
 
+  const handleCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const place = await reverseGeocodeLocation(lat, lng);
+        setLocating(false);
+        onDiscover(place.displayName, { lat, lng }, place.boundingBox);
+      },
+      (err) => {
+        setLocating(false);
+        alert("Could not access current location: " + err.message);
+      },
+      { timeout: 10000 },
+    );
+  };
+
   return (
     <form onSubmit={handleSubmit} className="mt-2 w-full flex flex-col items-center gap-3 relative">
       <div className="relative w-full">
@@ -220,7 +243,7 @@ function LandingInput({
             // Allow click events to register before unmounting suggestions
             setTimeout(() => setIsOpen(false), 200);
           }}
-          placeholder="Enter location or organization name..."
+          placeholder="Enter location, city, state, or landmark name..."
           className={cn(
             "w-full bg-[#0d0e12] border border-white/20 rounded-lg px-4 py-2.5 text-[12px] text-white outline-none transition-all duration-200",
             focused
@@ -242,7 +265,7 @@ function LandingInput({
             >
               {value.trim().length < 3 && (
                 <li className="px-3.5 py-2 text-[11px] font-mono uppercase tracking-widest text-slate-300 border-b border-white/10 bg-[#14161f] select-none">
-                  Famous Global Landmarks
+                  Famous Global & Indian Locations
                 </li>
               )}
               {suggestions.map((item, idx) => (
@@ -260,22 +283,36 @@ function LandingInput({
         </AnimatePresence>
       </div>
 
-      <button
-        type="submit"
-        disabled={!value.trim()}
-        className={cn(
-          "w-full rounded-lg bg-cognition py-2.5 font-mono text-[11px] uppercase tracking-wider text-void transition-all duration-300",
-          value.trim()
-            ? "cursor-pointer hover:bg-cognition-bright hover:shadow-[0_0_12px_rgba(139,156,255,0.3)]"
-            : "cursor-not-allowed opacity-35",
-        )}
-      >
-        Assess Footprint
-      </button>
+      <div className="flex w-full gap-2">
+        <button
+          type="submit"
+          disabled={!value.trim()}
+          className={cn(
+            "flex-1 rounded-lg bg-cognition py-2.5 font-mono text-[11px] uppercase tracking-wider text-void transition-all duration-300",
+            value.trim()
+              ? "cursor-pointer hover:bg-cognition-bright hover:shadow-[0_0_12px_rgba(139,156,255,0.3)]"
+              : "cursor-not-allowed opacity-35",
+          )}
+        >
+          Assess Footprint
+        </button>
+
+        <button
+          type="button"
+          onClick={handleCurrentLocation}
+          disabled={locating}
+          className="flex items-center justify-center gap-1.5 rounded-lg border border-cognition/40 bg-cognition/10 px-3.5 py-2.5 font-mono text-[11px] uppercase tracking-wider text-cognition transition-all duration-200 hover:bg-cognition/20 hover:border-cognition/60 cursor-pointer"
+          title="Use GPS Current Location (Near Me)"
+        >
+          <span className="h-2 w-2 rounded-full bg-cognition animate-ping" />
+          {locating ? "Locating..." : "Near Me"}
+        </button>
+      </div>
 
       <span className="font-mono text-[11px] text-ink-ghost tracking-wide">
-        e.g., Times Square, Eiffel Tower, Tokyo Station, Central Park, or any OSM entity
+        e.g., Hyderabad, Bengaluru, Times Square, Eiffel Tower, or Near Me
       </span>
     </form>
   );
+}
 }
