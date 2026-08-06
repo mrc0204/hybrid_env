@@ -1,7 +1,7 @@
 import type { GeoLocation, RiskState, WorldEntity } from "@ai-env/contracts";
 import { motion } from "framer-motion";
-import { useState } from "react";
-import { CircleMarker, MapContainer, TileLayer, Tooltip } from "react-leaflet";
+import { useMemo, useState } from "react";
+import { Circle, CircleMarker, MapContainer, Polyline, TileLayer, Tooltip } from "react-leaflet";
 
 import { cn } from "@/lib/utils";
 import { SEVERITY_HEX } from "@/lib/severity";
@@ -58,7 +58,31 @@ export function EnvironmentMap() {
 
   const center = storeCenter || GAZETTEER.Campus!;
   const risksVisible = activeStage >= 2;
+  const routeVisible = activeStage >= 3;
   const tiles = BASEMAPS[basemap];
+
+  // The router returns its path as entity *labels*, since that is what reads
+  // in the trace. Turning it back into a drawable line means matching those
+  // labels to the entities they came from. Any hop that can't be resolved to
+  // a coordinate is dropped rather than guessed at — a route line is a claim
+  // about real geography, and inventing a vertex would make it a false one.
+  const routeLine = useMemo(() => {
+    const chosen = trace.simulations.find(
+      (s) => s.id === trace.decision.chosenSimulationResultId,
+    );
+    if (!chosen?.routePath?.length) return [];
+
+    const byLabel = new Map<string, GeoLocation>();
+    for (const entity of trace.worldState.entities) {
+      const point = resolveLocation(entity.location);
+      if (point && entity.label && !byLabel.has(entity.label)) byLabel.set(entity.label, point);
+    }
+
+    return chosen.routePath
+      .map((label) => byLabel.get(label))
+      .filter((p): p is GeoLocation => Boolean(p))
+      .map((p) => [p.lat, p.lng] as [number, number]);
+  }, [trace]);
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-xl" data-basemap={basemap}>
@@ -88,8 +112,20 @@ export function EnvironmentMap() {
           />
         ))}
 
-        {/* Risks sit above entities and only appear once assessed, so the map
-            tells the same temporal story as the spine. */}
+        {/* Risk fields render beneath their markers: the marker says "a risk
+            was detected here", the field says "and this is roughly how far it
+            reaches". Both appear only once assessed, so the map tells the same
+            temporal story as the spine. */}
+        {risksVisible &&
+          trace.risks.map((risk) => (
+            <RiskField key={`f-${risk.id}`} risk={risk} fallback={center} />
+          ))}
+
+        {/* The chosen route, drawn once the simulation stage is reached. Seeing
+            it bend around the risk fields is the whole argument that the router
+            is reacting to the world model rather than ignoring it. */}
+        {routeVisible && routeLine.length > 1 && <RouteLine points={routeLine} />}
+
         {risksVisible &&
           trace.risks.map((risk) => (
             <RiskMarker
@@ -108,6 +144,97 @@ export function EnvironmentMap() {
         <span className="eyebrow">{trace.worldState.scope}</span>
       </div>
     </div>
+  );
+}
+
+/**
+ * Roughly how far each severity's influence is treated as reaching, in metres.
+ * These are presentational — the reasoning engine models risk as attached to
+ * entities, not as a measured radius — so the field is drawn as a soft
+ * gradient with no hard edge, which is the honest way to render a boundary
+ * the system does not actually claim to know.
+ */
+const RISK_FIELD_RADIUS_M: Record<string, number> = {
+  critical: 330,
+  high: 260,
+  medium: 190,
+  low: 130,
+};
+
+/** Concentric bands, outermost first: each is faint, and they sum to a falloff. */
+const FIELD_BANDS = [
+  { scale: 1.0, opacity: 0.05 },
+  { scale: 0.72, opacity: 0.07 },
+  { scale: 0.48, opacity: 0.09 },
+  { scale: 0.26, opacity: 0.13 },
+];
+
+/**
+ * A risk rendered as a spatial field rather than a pin. A single dot says
+ * "something is wrong here"; a gradient says "this is the shape of it", which
+ * is the difference between a map with markers on it and a map that shows a
+ * world model.
+ */
+function RiskField({ risk, fallback }: { risk: RiskState; fallback: GeoLocation }) {
+  // Weather and traffic risks carry the organization's *label* as their
+  // location, because that is what the provider was queried for. Falling back
+  // to the organization's centre is not a guess in that case — it is the
+  // coordinate the reading was actually taken at.
+  const point = resolveLocation(risk.location) ?? fallback;
+
+  const color = SEVERITY_HEX[risk.severity] ?? SEVERITY_HEX.medium;
+  const base = RISK_FIELD_RADIUS_M[risk.severity] ?? RISK_FIELD_RADIUS_M.medium!;
+
+  return (
+    <>
+      {FIELD_BANDS.map((band) => (
+        <Circle
+          key={band.scale}
+          center={[point.lat, point.lng]}
+          radius={base * band.scale}
+          // Radius is geographic, so the field keeps its real extent as the
+          // map zooms — unlike the markers, which are a fixed pixel size.
+          pathOptions={{
+            color,
+            fillColor: color,
+            fillOpacity: band.opacity,
+            opacity: 0,
+            stroke: false,
+          }}
+          interactive={false}
+        />
+      ))}
+    </>
+  );
+}
+
+/**
+ * The chosen path, drawn as a casing plus a bright core so it stays readable
+ * over both the dark basemap and satellite imagery.
+ */
+function RouteLine({ points }: { points: [number, number][] }) {
+  return (
+    <>
+      <Polyline
+        positions={points}
+        pathOptions={{ color: "#05070d", weight: 7, opacity: 0.55 }}
+        interactive={false}
+      />
+      <Polyline
+        positions={points}
+        pathOptions={{ color: "#8B9CFF", weight: 2.5, opacity: 0.95, dashArray: "1 7" }}
+        interactive={false}
+      />
+      {points.map((p, i) => (
+        <CircleMarker
+          key={`${p[0]}-${p[1]}-${i}`}
+          center={p}
+          radius={2.5}
+          pathOptions={{ color: "#8B9CFF", fillColor: "#8B9CFF", fillOpacity: 1, weight: 0 }}
+          interactive={false}
+        />
+      ))}
+    </>
   );
 }
 

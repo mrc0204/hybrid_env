@@ -38,14 +38,18 @@ describe("normalizeOsmElements", () => {
   });
 
   it("classifies parking, gates, and entrances", () => {
-    const [parking, gate, entrance] = normalizeOsmElements([
+    // Looked up by type rather than by position: routable entities are
+    // deliberately hoisted ahead of the rest, so output order is not the
+    // input order and asserting on it would pin the wrong behavior.
+    const types = normalizeOsmElements([
       way(1, { amenity: "parking" }),
       node(2, { barrier: "gate" }),
       node(3, { entrance: "yes" }),
-    ]);
-    expect(parking?.type).toBe("parking");
-    expect(gate?.type).toBe("gate");
-    expect(entrance?.type).toBe("entrance");
+    ]).map((e) => e.type);
+
+    expect(types).toContain("parking");
+    expect(types).toContain("gate");
+    expect(types).toContain("entrance");
   });
 
   it("classifies other amenities generically", () => {
@@ -80,5 +84,23 @@ describe("normalizeOsmElements", () => {
     const elements = Array.from({ length: 8 }, (_, i) => way(i, { building: "yes" }));
     const entities = normalizeOsmElements(elements);
     expect(entities).toHaveLength(5); // stubbed to 5 in vitest.config.ts
+  });
+
+  it("keeps the road network when the cap bites, even if amenities came first", () => {
+    // OSM returns far more amenities than roads, so a naive first-N
+    // truncation can drop every road — leaving the Dijkstra router with no
+    // graph, at which point it correctly refuses to route and the spatial
+    // reasoning silently vanishes.
+    const elements = [
+      ...Array.from({ length: 6 }, (_, i) => node(100 + i, { amenity: "cafe" })),
+      way(1, { highway: "residential" }),
+      node(2, { barrier: "gate" }),
+    ];
+
+    const types = normalizeOsmElements(elements).map((e) => e.type);
+
+    expect(types).toContain("road");
+    expect(types).toContain("gate");
+    expect(types).toHaveLength(5); // still capped
   });
 });

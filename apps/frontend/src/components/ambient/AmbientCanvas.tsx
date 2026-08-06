@@ -350,7 +350,7 @@ export const AmbientCanvas: React.FC<AmbientCanvasProps> = ({
         // Smooth breathing & mouse interaction
         let nx = base.x + Math.sin(elapsedTime + idx) * 0.08 + n * 0.15;
         let ny = base.y + Math.cos(elapsedTime * 0.8 + idx) * 0.08 + n * 0.15;
-        let nz = base.z + n * 0.1;
+        const nz = base.z + n * 0.1;
 
         // Mouse attraction
         nx += (mx - nx) * 0.04;

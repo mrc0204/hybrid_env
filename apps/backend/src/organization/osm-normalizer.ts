@@ -41,12 +41,22 @@ function resolveLocation(el: OverpassElement): { lat: number; lng: number } | nu
  * usable tags or no resolvable location are skipped, not errored — partial
  * or messy OSM data is the normal case, not an exception.
  */
+/**
+ * Entity types the Dijkstra router builds its graph from. They are kept ahead
+ * of everything else when the cap bites: a truncation that happens to drop
+ * every road leaves the router with nothing to route over, and it correctly
+ * refuses to invent a path — so the whole spatial reasoning step silently
+ * disappears. Amenities are the most numerous thing OSM returns and would
+ * otherwise crowd the network out entirely.
+ */
+const ROUTABLE_TYPES = new Set(["road", "footpath", "gate", "entrance"]);
+
 export function normalizeOsmElements(elements: OverpassElement[]): WorldEntity[] {
   const now = new Date().toISOString();
-  const entities: WorldEntity[] = [];
+  const routable: WorldEntity[] = [];
+  const rest: WorldEntity[] = [];
 
   for (const el of elements) {
-    if (entities.length >= env.ORG_MAX_ENTITIES) break;
     if (!el.tags) continue;
 
     const classified = classify(el.tags);
@@ -55,15 +65,21 @@ export function normalizeOsmElements(elements: OverpassElement[]): WorldEntity[]
     const location = resolveLocation(el);
     if (!location) continue;
 
-    entities.push({
+    const entity: WorldEntity = {
       id: `osm-${el.type}-${el.id}`,
       type: classified.type,
       label: classified.label,
       location,
       attributes: { ...el.tags },
       updatedAt: now,
-    });
+    };
+
+    (ROUTABLE_TYPES.has(classified.type) ? routable : rest).push(entity);
+
+    // Nothing more can change the outcome once both buckets together can
+    // fill the cap with routable entities already prioritised.
+    if (routable.length >= env.ORG_MAX_ENTITIES) break;
   }
 
-  return entities;
+  return [...routable, ...rest].slice(0, env.ORG_MAX_ENTITIES);
 }
