@@ -59,7 +59,7 @@ export default function App() {
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ delay: 2.2, duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-col items-center gap-6"
           >
             {/* Branding badge */}

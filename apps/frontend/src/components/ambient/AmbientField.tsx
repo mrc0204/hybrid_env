@@ -1,29 +1,33 @@
 import { motion } from "framer-motion";
 
 import { SEVERITY_HEX, type Severity } from "@/lib/severity";
+import { AmbientCanvas } from "./AmbientCanvas";
 
 interface AmbientFieldProps {
   severity: Severity | null;
   isThinking: boolean;
+  onRevealReady?: () => void;
 }
 
 /**
- * The room's mood.
+ * The room's mood & living WebGL intelligence canvas.
  *
- * This is peripheral, not decorative: the field's hue is driven by the peak
- * active risk and its motion by whether the system is mid-cycle. A user
- * looking away from the panels still registers that something changed —
- * ambient awareness is how physical control rooms work, and it costs no
- * screen real estate.
- *
- * Deliberately slow (12-20s) so it never competes with foreground motion.
+ * Blends Three.js dynamic particle & neural network intelligence canvas
+ * with soft ambient peripheral lighting and noise grain texture.
  */
-export function AmbientField({ severity, isThinking }: AmbientFieldProps) {
-  const hue = severity ? SEVERITY_HEX[severity] : "#8B9CFF";
+export function AmbientField({ severity, isThinking, onRevealReady }: AmbientFieldProps) {
+  const hue = severity ? SEVERITY_HEX[severity] : "#7B8DFF";
   const intensity = severity === "critical" ? 0.3 : severity === "high" ? 0.22 : 0.15;
 
   return (
     <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
+      {/* Three.js WebGL Living Intelligence Particle & Neural Network Canvas */}
+      <AmbientCanvas
+        isThinking={isThinking}
+        severityColor={hue}
+        onRevealReady={onRevealReady}
+      />
+
       {/* Primary bloom — anchors the composition's optical centre. */}
       <motion.div
         className="absolute -left-[10%] top-[-20%] h-[70vh] w-[70vw] rounded-full blur-[130px]"
@@ -39,8 +43,7 @@ export function AmbientField({ severity, isThinking }: AmbientFieldProps) {
         }}
       />
 
-      {/* Counterweight bloom, offset in phase so the field never pulses as one
-          mass — that would read as a heartbeat gimmick. */}
+      {/* Counterweight bloom */}
       <motion.div
         className="absolute bottom-[-25%] right-[-5%] h-[60vh] w-[55vw] rounded-full blur-[140px]"
         animate={{
@@ -55,8 +58,7 @@ export function AmbientField({ severity, isThinking }: AmbientFieldProps) {
         }}
       />
 
-      {/* Grain. Flat gradients on dark backgrounds band badly on cheap panels;
-          noise breaks it up and adds the texture that makes it read premium. */}
+      {/* Noise Grain texture */}
       <div
         className="absolute inset-0 opacity-[0.16] mix-blend-overlay"
         style={{
@@ -65,8 +67,8 @@ export function AmbientField({ severity, isThinking }: AmbientFieldProps) {
         }}
       />
 
-      {/* Vignette — pulls the eye to centre and stops panels floating in void. */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(7,8,11,0.85)_100%)]" />
+      {/* Vignette */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(5,6,8,0.85)_100%)]" />
     </div>
   );
 }
