@@ -65,6 +65,8 @@ interface CognitionState {
   trace: CognitiveTrace;
   traces: CognitiveTrace[];
   traceIndex: number;
+  assessedOrganization: string | null;
+  mapCenter: { lat: number; lng: number } | null;
 
   /** How far the current cycle has progressed. -1 = idle, 5 = complete. */
   activeStage: number;
@@ -84,6 +86,8 @@ interface CognitionState {
   setTrace: (trace: CognitiveTrace) => void;
   inspectStage: (stage: StageId | null) => void;
   highlight: (refId: string | null) => void;
+  setAssessedOrganization: (name: string | null) => void;
+  setMapCenter: (center: { lat: number; lng: number } | null) => void;
 }
 
 const initialTraces = buildTraces();
@@ -92,6 +96,8 @@ export const useCognition = create<CognitionState>((set, get) => ({
   traces: initialTraces,
   trace: initialTraces[0]!,
   traceIndex: 0,
+  assessedOrganization: null,
+  mapCenter: null,
 
   activeStage: -1,
   isRunning: false,
@@ -134,6 +140,8 @@ export const useCognition = create<CognitionState>((set, get) => ({
 
   inspectStage: (stage) => set({ inspectedStage: stage }),
   highlight: (refId) => set({ highlightedRefId: refId }),
+  setAssessedOrganization: (name) => set({ assessedOrganization: name }),
+  setMapCenter: (center) => set({ mapCenter: center }),
 }));
 
 /** Stage currently shown in the detail pane: user selection wins over the cycle. */

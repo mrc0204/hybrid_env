@@ -5,7 +5,8 @@ import { geocodeOrganization } from "./nominatim.client";
 import { normalizeOsmElements } from "./osm-normalizer";
 import { fetchOrganizationInfrastructure } from "./overpass.client";
 import { loadFallbackGraph } from "./fallback-graph";
-import type { OrganizationDiscoveryResult } from "./types";
+import type { OrganizationDiscoveryResult, BoundingBox } from "./types";
+import { AppError } from "../errors/app-error";
 
 type GeocodeFn = typeof geocodeOrganization;
 type FetchInfrastructureFn = typeof fetchOrganizationInfrastructure;
@@ -32,7 +33,11 @@ export class OrganizationService {
     private readonly fallback: LoadFallbackFn = loadFallbackGraph,
   ) {}
 
-  async discover(name: string): Promise<OrganizationDiscoveryResult> {
+  async discover(
+    name: string,
+    center?: { lat: number; lng: number },
+    boundingBox?: BoundingBox,
+  ): Promise<OrganizationDiscoveryResult> {
     const cached = await this.cacheReader(name);
     if (cached) {
       logger.info({ name }, "[organization] cache hit — no external requests made");
@@ -40,17 +45,36 @@ export class OrganizationService {
     }
 
     try {
-      const profile = await this.geocode(name);
+      let profile;
+      if (center && boundingBox) {
+        // Use coordinates passed directly from frontend geocoded suggestions
+        profile = {
+          queryName: name,
+          resolvedName: name,
+          center,
+          boundingBox,
+        };
+      } else {
+        profile = await this.geocode(name);
+      }
+
       if (!profile) {
-        logger.warn({ name }, "[organization] no geocoding match — using fallback graph");
-        return this.fallback();
+        // Only allow silent fallback to default demo data for default campus searches
+        const isDefaultCampus =
+          name.toLowerCase().includes("niat") ||
+          name.toLowerCase().includes("kkh") ||
+          name.toLowerCase().includes("south gate");
+
+        if (isDefaultCampus) {
+          logger.warn({ name }, "[organization] no geocoding match — using fallback graph");
+          return this.fallback();
+        }
+
+        logger.warn({ name }, "[organization] no geocoding match");
+        throw AppError.notFound(`Could not resolve location coordinates for "${name}". Please choose from the search suggestions.`);
       }
 
       const elements = await this.fetchInfrastructure(profile.boundingBox);
-      // A sparse or empty result is still a legitimate live discovery — the
-      // organization resolved and OSM was queried, it just has little mapped
-      // infrastructure. That is different from a failure and should not fall
-      // back to a whole different (and misleadingly-named) demo campus.
       const entities = attachConnectivity(normalizeOsmElements(elements));
 
       await this.cacheWriter(name, profile, entities);
@@ -58,8 +82,21 @@ export class OrganizationService {
       logger.info({ name, entityCount: entities.length }, "[organization] live discovery complete");
       return { profile, entities, source: "live" };
     } catch (err) {
-      logger.warn({ err, name }, "[organization] live discovery failed — using fallback graph");
-      return this.fallback();
+      const isDefaultCampus =
+        name.toLowerCase().includes("niat") ||
+        name.toLowerCase().includes("kkh") ||
+        name.toLowerCase().includes("south gate");
+
+      if (isDefaultCampus) {
+        logger.warn({ err, name }, "[organization] live discovery failed — using fallback graph");
+        return this.fallback();
+      }
+
+      if (err instanceof AppError) {
+        throw err;
+      }
+      logger.warn({ err, name }, "[organization] live discovery failed");
+      throw new AppError(500, "DISCOVERY_FAILED", `Failed to complete discovery for "${name}".`);
     }
   }
 }

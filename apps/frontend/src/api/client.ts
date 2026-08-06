@@ -15,6 +15,65 @@ import { REALTIME_CHANNELS } from "@ai-env/contracts";
  */
 export const USE_MOCK = import.meta.env.VITE_USE_MOCK !== "false";
 
+export interface PlaceSuggestion {
+  displayName: string;
+  lat: number;
+  lng: number;
+  boundingBox?: { south: number; west: number; north: number; east: number };
+}
+
+interface OsmSearchItem {
+  display_name: string;
+  lat: string;
+  lon: string;
+  boundingbox?: [string, string, string, string];
+}
+
+export const FAMOUS_LANDMARKS: PlaceSuggestion[] = [
+  { displayName: "Taj Mahal, Agra, Uttar Pradesh, India", lat: 27.1751, lng: 78.0421 },
+  { displayName: "India Gate, Rajpath, New Delhi, Delhi, India", lat: 28.6129, lng: 77.2295 },
+  { displayName: "Charminar, Hyderabad, Telangana, India", lat: 17.3616, lng: 78.4747 },
+  { displayName: "Gateway of India, Mumbai, Maharashtra, India", lat: 18.9220, lng: 72.8347 },
+  { displayName: "IIT Hyderabad, Kandi, Sangareddy, Telangana, India", lat: 17.5947, lng: 78.1228 },
+  { displayName: "Hawa Mahal, Jaipur, Rajasthan, India", lat: 26.9239, lng: 75.8267 },
+  { displayName: "Red Fort, Netaji Subhash Marg, Delhi, India", lat: 28.6562, lng: 77.2410 },
+  { displayName: "Qutub Minar, New Delhi, Delhi, India", lat: 28.5245, lng: 77.1855 },
+];
+
+/**
+ * Autocomplete place suggestions fetched from the OpenStreetMap Nominatim search API.
+ * Debounced in the UI layer to prevent hitting OSM API limits.
+ * Bound strictly to countrycodes=in (India).
+ */
+export async function fetchPlaceSuggestions(query: string): Promise<PlaceSuggestion[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 3) return [];
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(trimmed)}&limit=5&countrycodes=in&addressdetails=1`;
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "agentic-environment-intelligence/1.0 (hackathon-demo-autocomplete)"
+      }
+    });
+    const data = (await res.json()) as OsmSearchItem[];
+    if (!Array.isArray(data)) return [];
+    return data.map((item) => ({
+      displayName: item.display_name,
+      lat: parseFloat(item.lat),
+      lng: parseFloat(item.lon),
+      boundingBox: item.boundingbox ? {
+        south: parseFloat(item.boundingbox[0]),
+        north: parseFloat(item.boundingbox[1]),
+        west: parseFloat(item.boundingbox[2]),
+        east: parseFloat(item.boundingbox[3]),
+      } : undefined
+    }));
+  } catch (err) {
+    console.error("Failed to fetch autocomplete suggestions", err);
+    return [];
+  }
+}
+
 export async function fetchHealth(): Promise<HealthStatus> {
   const res = await fetch("/health");
   const body = (await res.json()) as ApiResponse<HealthStatus>;
@@ -46,6 +105,48 @@ export async function triggerEnvironmentRefresh(): Promise<PipelineResult> {
 export async function fetchLatestTrace(): Promise<ReasonTrace> {
   const res = await fetch("/api/v1/trace/latest");
   const body = (await res.json()) as ApiResponse<ReasonTrace>;
+  if (!body.success) throw new Error(body.error.message);
+  return body.data;
+}
+
+export interface OrganizationDiscoveryResult {
+  organization: {
+    queryName: string;
+    resolvedName: string;
+    osmId?: string;
+    center: { lat: number; lng: number };
+    boundingBox: { south: number; west: number; north: number; east: number };
+  };
+  source: "live" | "cache" | "fallback";
+  entityCount: number;
+  pipeline: {
+    status: "ok" | "degraded" | "failed";
+    recommendation?: Recommendation;
+    error?: string;
+  };
+}
+
+/**
+ * Discover an organization by name: resolves its physical footprint via OSM,
+ * combines that with live weather and traffic at its location, runs the full
+ * AI Core reasoning pipeline, and returns the resulting recommendation.
+ *
+ * Pass an AbortSignal to support cancellation — the hook wires this to an
+ * AbortController so the user can cancel mid-flight without memory leaks.
+ */
+export async function discoverOrganization(
+  name: string,
+  center?: { lat: number; lng: number },
+  boundingBox?: { south: number; west: number; north: number; east: number },
+  signal?: AbortSignal,
+): Promise<OrganizationDiscoveryResult> {
+  const res = await fetch("/api/v1/organization/discover", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, center, boundingBox }),
+    signal,
+  });
+  const body = (await res.json()) as ApiResponse<OrganizationDiscoveryResult>;
   if (!body.success) throw new Error(body.error.message);
   return body.data;
 }

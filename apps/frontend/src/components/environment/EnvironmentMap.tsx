@@ -24,19 +24,21 @@ export function EnvironmentMap() {
   const highlighted = useCognition((s) => s.highlightedRefId);
   const highlight = useCognition((s) => s.highlight);
   const activeStage = useCognition((s) => s.activeStage);
+  const storeCenter = useCognition((s) => s.mapCenter);
 
-  const center = GAZETTEER.Campus!;
+  const center = storeCenter || GAZETTEER.Campus!;
   const risksVisible = activeStage >= 2;
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-xl">
       <MapContainer
+        key={`${center.lat}-${center.lng}`}
         center={[center.lat, center.lng]}
-        zoom={15}
+        zoom={16}
         zoomControl={false}
         attributionControl
         scrollWheelZoom={false}
-        dragging={false}
+        dragging={true}
         doubleClickZoom={false}
         style={{ height: "100%", width: "100%" }}
       >

@@ -22,14 +22,29 @@ import { STAGES, useCognition } from "@/store/cognition";
  */
 export function useCognitiveCycle(enabled: boolean) {
   const timers = useRef<number[]>([]);
+  const assessedOrganization = useCognition((s) => s.assessedOrganization);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !assessedOrganization) return;
 
     const clearAll = () => {
       timers.current.forEach(window.clearTimeout);
       timers.current = [];
     };
+
+    // If it is a custom organization (i.e. not the default campus), we do not run the background polling
+    // or mock scenario rotation loops. This prevents the UI from reverting back to NIAT KKH.
+    const isDefaultCampus =
+      assessedOrganization.toLowerCase().includes("niat") ||
+      assessedOrganization.toLowerCase().includes("kkh") ||
+      assessedOrganization.toLowerCase().includes("south gate");
+
+    if (!isDefaultCampus) {
+      // Set stages to complete and stand by on the custom organization trace.
+      const { completeCycle } = useCognition.getState();
+      completeCycle();
+      return clearAll;
+    }
 
     const animateStages = (onDone: () => void) => {
       const { advanceStage, completeCycle } = useCognition.getState();
@@ -80,7 +95,7 @@ export function useCognitiveCycle(enabled: boolean) {
     timers.current.push(bootTimer);
 
     return clearAll;
-  }, [enabled]);
+  }, [enabled, assessedOrganization]);
 }
 
 function toCognitiveTrace(trace: Awaited<ReturnType<typeof fetchLatestTrace>>): CognitiveTrace {

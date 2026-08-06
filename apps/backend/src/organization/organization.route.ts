@@ -11,6 +11,16 @@ export const organizationRouter = Router();
 
 const DiscoverBodySchema = z.object({
   name: z.string().trim().min(1, "Organization name is required"),
+  center: z.object({
+    lat: z.number(),
+    lng: z.number(),
+  }).optional(),
+  boundingBox: z.object({
+    south: z.number(),
+    west: z.number(),
+    north: z.number(),
+    east: z.number(),
+  }).optional(),
 });
 
 /**
@@ -19,9 +29,8 @@ const DiscoverBodySchema = z.object({
  * environment, combines it with live weather/traffic at its location, and
  * returns a personalized recommendation.
  *
- * `organizationService.discover` never throws — it always resolves, worst
- * case with the bundled fallback graph — so the only error path here is a
- * malformed request body, unrelated to any external service's availability.
+ * Supports passing geocoded center and boundingBox parameters directly from
+ * the frontend's autocomplete selections to bypass rate-limited geocoding APIs on the backend.
  */
 organizationRouter.post("/discover", async (req, res, next) => {
   const parsed = DiscoverBodySchema.safeParse(req.body);
@@ -30,7 +39,11 @@ organizationRouter.post("/discover", async (req, res, next) => {
     return;
   }
 
-  const discovery = await organizationService.discover(parsed.data.name);
+  const discovery = await organizationService.discover(
+    parsed.data.name,
+    parsed.data.center,
+    parsed.data.boundingBox,
+  );
   const pipelineResult = await environmentPipeline.runForOrganization(discovery);
 
   const body: ApiResponse<OrganizationDiscoveryResponse> = {

@@ -34,7 +34,7 @@ async function throttle(): Promise<void> {
 export async function geocodeOrganization(name: string): Promise<OrganizationProfile | null> {
   await throttle();
 
-  const url = `${env.NOMINATIM_URL}?q=${encodeURIComponent(name)}&format=json&limit=1&addressdetails=0`;
+  const url = `${env.NOMINATIM_URL}?q=${encodeURIComponent(name)}&format=json&limit=1&addressdetails=0&countrycodes=in`;
 
   const results = await requestJson<NominatimResult[]>(url, {
     headers: { "User-Agent": env.NOMINATIM_USER_AGENT },
