@@ -74,8 +74,10 @@ export async function fetchPlaceSuggestions(query: string): Promise<PlaceSuggest
   }
 }
 
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 export async function fetchHealth(): Promise<HealthStatus> {
-  const res = await fetch("/health");
+  const res = await fetch(`${API_BASE}/health`);
   const body = (await res.json()) as ApiResponse<HealthStatus>;
   if (!body.success) throw new Error(body.error.message);
   return body.data;
@@ -91,7 +93,7 @@ interface PipelineResult {
 
 /** Triggers one Backend pipeline cycle: collect -> normalize -> AI Core -> broadcast. */
 export async function triggerEnvironmentRefresh(): Promise<PipelineResult> {
-  const res = await fetch("/api/v1/environment/refresh", { method: "POST" });
+  const res = await fetch(`${API_BASE}/api/v1/environment/refresh`, { method: "POST" });
   const body = (await res.json()) as ApiResponse<PipelineResult>;
   if (!body.success) throw new Error(body.error.message);
   return body.data;
@@ -103,7 +105,7 @@ export async function triggerEnvironmentRefresh(): Promise<PipelineResult> {
  * branch of `useCognitiveCycle` (see that file for how USE_MOCK gates it).
  */
 export async function fetchLatestTrace(): Promise<ReasonTrace> {
-  const res = await fetch("/api/v1/trace/latest");
+  const res = await fetch(`${API_BASE}/api/v1/trace/latest`);
   const body = (await res.json()) as ApiResponse<ReasonTrace>;
   if (!body.success) throw new Error(body.error.message);
   return body.data;
@@ -140,7 +142,7 @@ export async function discoverOrganization(
   boundingBox?: { south: number; west: number; north: number; east: number },
   signal?: AbortSignal,
 ): Promise<OrganizationDiscoveryResult> {
-  const res = await fetch("/api/v1/organization/discover", {
+  const res = await fetch(`${API_BASE}/api/v1/organization/discover`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, center, boundingBox }),
