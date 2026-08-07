@@ -24,19 +24,40 @@ const EVIDENCE_LABEL: Record<EvidenceRef["type"], string> = {
  * promoted. A system that looks equally certain at 44% and 87% is one you
  * eventually stop believing.
  */
+import { useEffect, useRef } from "react";
+
 export function RecommendationPanel() {
   const trace = useCognition((s) => s.trace);
   const activeStage = useCognition((s) => s.activeStage);
   const highlight = useCognition((s) => s.highlight);
   const highlighted = useCognition((s) => s.highlightedRefId);
 
-  const { speakBriefing, explainTrace, stopSpeaking, isSpeaking, isSupported } =
-    useVoiceIntelligence();
+  const {
+    speakBriefing,
+    explainTrace,
+    stopSpeaking,
+    isSpeaking,
+    isLoadingModel,
+    isSupported,
+  } = useVoiceIntelligence();
 
   const rec = trace.recommendation;
   const isReady = activeStage >= 5;
   const certainty = certaintyOf(rec.confidence);
   const needsReview = certainty === "low";
+
+  const hasSpokenRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (isReady && trace.key && hasSpokenRef.current !== trace.key) {
+      hasSpokenRef.current = trace.key;
+      // Delay speech synthesis slightly so visual recommendation renders first
+      const t = setTimeout(() => {
+        speakBriefing();
+      }, 400);
+      return () => clearTimeout(t);
+    }
+  }, [isReady, trace.key, speakBriefing]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -147,7 +168,11 @@ export function RecommendationPanel() {
                       <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
                       <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
                     </svg>
-                    {isSpeaking ? "Mute Briefing" : "Listen Executive Briefing"}
+                    {isLoadingModel
+                      ? "Loading Kokoro TTS..."
+                      : isSpeaking
+                        ? "Mute Briefing"
+                        : "Listen Executive Briefing"}
                   </button>
 
                   <button

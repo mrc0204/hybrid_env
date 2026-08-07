@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useCognition } from "@/store/cognition";
 import { peakSeverity } from "@/lib/severity";
+import { VoiceService } from "@/services/voiceService";
 
 // Declare Web Speech API types for TypeScript
 interface SpeechRecognitionErrorEvent extends Event {
@@ -33,6 +34,7 @@ declare global {
 export function useVoiceIntelligence(onDiscover?: (location: string) => void) {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isLoadingModel, setIsLoadingModel] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSupported, setIsSupported] = useState(true);
@@ -40,6 +42,8 @@ export function useVoiceIntelligence(onDiscover?: (location: string) => void) {
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const trace = useCognition((s) => s.trace);
   const assessedOrganization = useCognition((s) => s.assessedOrganization);
+
+  const voiceService = VoiceService.getInstance();
 
   // Initialize SpeechRecognition instance
   useEffect(() => {
@@ -62,17 +66,13 @@ export function useVoiceIntelligence(onDiscover?: (location: string) => void) {
   }, []);
 
   const stopSpeaking = useCallback(() => {
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-    }
-  }, []);
+    voiceService.stop();
+    setIsSpeaking(false);
+    setIsLoadingModel(false);
+  }, [voiceService]);
 
-  // Executive Briefing Speech Synthesis
+  // Executive Briefing Speech Synthesis (Kokoro Primary -> Web Speech Fallback)
   const speakBriefing = useCallback(() => {
-    if (!("speechSynthesis" in window)) return;
-    stopSpeaking();
-
     const rec = trace?.recommendation;
     if (!rec) return;
 
@@ -89,37 +89,49 @@ export function useVoiceIntelligence(onDiscover?: (location: string) => void) {
       riskCount > 0 ? `${riskCount} active operational risks identified, with ${peakSev} peak severity.` : "No critical risks detected."
     } Recommended action: ${rec.action}. Confidence score is ${confidencePct} percent. The governance review ${govStatus} this recommendation.`;
 
-    const utterance = new SpeechSynthesisUtterance(speechText);
-    utterance.rate = 1.05;
-    utterance.pitch = 1.0;
+    setIsLoadingModel(voiceService.isLoading());
 
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-
-    window.speechSynthesis.speak(utterance);
-  }, [trace, assessedOrganization, stopSpeaking]);
+    voiceService.speak(speechText, {
+      onStart: () => {
+        setIsLoadingModel(false);
+        setIsSpeaking(true);
+      },
+      onEnd: () => {
+        setIsLoadingModel(false);
+        setIsSpeaking(false);
+      },
+      onError: () => {
+        setIsLoadingModel(false);
+        setIsSpeaking(false);
+      },
+    });
+  }, [trace, assessedOrganization, voiceService]);
 
   // Voice Explainability ("Why?", "What evidence?")
   const explainTrace = useCallback(() => {
-    if (!("speechSynthesis" in window)) return;
-    stopSpeaking();
-
     const rec = trace?.recommendation;
     if (!rec) return;
 
     const shortName = (assessedOrganization || trace.worldState.scope || "location").split(",")[0];
     const explanationText = `Reasoning breakdown for ${shortName}: ${rec.reasoning}. This decision is backed by ${rec.evidence.length} evidence factors and multi-agent specialist consensus.`;
 
-    const utterance = new SpeechSynthesisUtterance(explanationText);
-    utterance.rate = 1.02;
+    setIsLoadingModel(voiceService.isLoading());
 
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-
-    window.speechSynthesis.speak(utterance);
-  }, [trace, assessedOrganization, stopSpeaking]);
+    voiceService.speak(explanationText, {
+      onStart: () => {
+        setIsLoadingModel(false);
+        setIsSpeaking(true);
+      },
+      onEnd: () => {
+        setIsLoadingModel(false);
+        setIsSpeaking(false);
+      },
+      onError: () => {
+        setIsLoadingModel(false);
+        setIsSpeaking(false);
+      },
+    });
+  }, [trace, assessedOrganization, voiceService]);
 
   // Voice Command Parser
   const parseCommand = useCallback(
@@ -213,6 +225,7 @@ export function useVoiceIntelligence(onDiscover?: (location: string) => void) {
   return {
     isListening,
     isSpeaking,
+    isLoadingModel,
     transcript,
     error,
     isSupported,

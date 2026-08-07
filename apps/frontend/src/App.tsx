@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { fetchPlaceSuggestions, reverseGeocodeLocation, type PlaceSuggestion, FAMOUS_LANDMARKS } from "@/api/client";
 
@@ -46,7 +46,7 @@ export default function App() {
   const discoveryPhase = useDiscoveryStore((s) => s.phase);
   const isDiscoveryVisible = discoveryPhase !== "idle";
 
-  const handleDismiss = () => useDiscoveryStore.getState().reset();
+  const handleDismiss = useCallback(() => useDiscoveryStore.getState().reset(), []);
 
   // ── Landing State ─────────────────────────────────────────────────────────
   // Prompt the user for the location/organization to assess first.

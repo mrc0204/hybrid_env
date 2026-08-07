@@ -23,8 +23,15 @@ export function TopBar({ onDiscover }: TopBarProps) {
   const trace = useCognition((s) => s.trace);
   const severity = peakSeverity(trace.risks);
 
-  const { isListening, isSpeaking, startListening, stopListening, stopSpeaking, isSupported } =
-    useVoiceIntelligence((location) => onDiscover(location));
+  const {
+    isListening,
+    isSpeaking,
+    isLoadingModel,
+    startListening,
+    stopListening,
+    stopSpeaking,
+    isSupported,
+  } = useVoiceIntelligence((location) => onDiscover(location));
 
   return (
     <header className="flex shrink-0 items-center justify-between gap-3 px-4 py-3 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:px-7 lg:py-4">
@@ -57,20 +64,27 @@ export function TopBar({ onDiscover }: TopBarProps) {
             }}
             className={cn(
               "relative flex items-center justify-center h-7 w-7 rounded-full border transition-all duration-300",
-              isListening
-                ? "border-amber-400 bg-amber-500/20 text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.5)]"
-                : isSpeaking
-                  ? "border-emerald-400 bg-emerald-500/20 text-emerald-300 shadow-[0_0_12px_rgba(52,211,153,0.5)]"
-                  : "border-white/20 bg-surface/80 text-ink-muted hover:border-cognition/60 hover:text-cognition",
+              isLoadingModel
+                ? "border-purple-400 bg-purple-500/20 text-purple-300"
+                : isListening
+                  ? "border-amber-400 bg-amber-500/20 text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.5)]"
+                  : isSpeaking
+                    ? "border-emerald-400 bg-emerald-500/20 text-emerald-300 shadow-[0_0_12px_rgba(52,211,153,0.5)]"
+                    : "border-white/20 bg-surface/80 text-ink-muted hover:border-cognition/60 hover:text-cognition",
             )}
             title={
-              isSpeaking
-                ? "Stop Briefing (Mute)"
-                : isListening
-                  ? "Listening... Click to cancel"
-                  : "Start Voice Control (Speak location or 'Explain')"
+              isLoadingModel
+                ? "Initializing Kokoro TTS Engine..."
+                : isSpeaking
+                  ? "Stop Briefing (Mute)"
+                  : isListening
+                    ? "Listening... Click to cancel"
+                    : "Start Voice Control (Kokoro Neural TTS)"
             }
           >
+            {isLoadingModel && (
+              <span className="absolute inset-0 rounded-full border border-purple-400 border-t-transparent animate-spin" />
+            )}
             {isListening && (
               <span className="absolute inset-0 rounded-full bg-amber-400/30 animate-ping" />
             )}

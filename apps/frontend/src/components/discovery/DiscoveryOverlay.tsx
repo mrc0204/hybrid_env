@@ -72,9 +72,12 @@ export function DiscoveryOverlay({ onCancel, onDismiss, onDiscover }: DiscoveryO
   // Auto-dismiss on success after a short read window.
   useEffect(() => {
     if (phase !== "success") return;
-    const t = window.setTimeout(onDismiss, 3_500);
+    const t = window.setTimeout(() => {
+      onDismiss();
+    }, 2_500);
     return () => window.clearTimeout(t);
-  }, [phase, onDismiss]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   return (
     <motion.div
@@ -97,7 +100,12 @@ export function DiscoveryOverlay({ onCancel, onDismiss, onDiscover }: DiscoveryO
       <div className="relative w-full max-w-[420px] px-8 pb-16 pt-[13vh]">
         <AnimatePresence mode="wait">
           {phase === "success" && recommendation ? (
-            <SuccessPanel key="success" orgName={orgName} recommendation={recommendation} />
+            <SuccessPanel
+              key="success"
+              orgName={orgName}
+              recommendation={recommendation}
+              onDismiss={onDismiss}
+            />
           ) : (
             <motion.div key="stages" initial={{ opacity: 1 }} exit={{ opacity: 0, y: -10 }}>
               {/* ── Header ─────────────────────────────────────────────────── */}
@@ -338,9 +346,11 @@ function StageDot({
 function SuccessPanel({
   orgName,
   recommendation,
+  onDismiss,
 }: {
   orgName: string;
   recommendation: Recommendation;
+  onDismiss: () => void;
 }) {
   const trace = useCognition((s) => s.trace);
   const chosenSim = trace?.simulations?.find(
@@ -418,7 +428,14 @@ function SuccessPanel({
         </div>
       </div>
 
-      <span className="font-mono text-[10px] text-ink-ghost">Closing…</span>
+      <button
+        onClick={onDismiss}
+        className="w-full flex items-center justify-center gap-2 rounded-lg bg-cognition py-2.5 font-mono text-[11px] uppercase tracking-wider text-void transition-all duration-300 hover:bg-cognition-bright hover:shadow-[0_0_12px_rgba(139,156,255,0.4)] cursor-pointer"
+      >
+        View Reasoning Trace & Map →
+      </button>
+
+      <span className="font-mono text-[10px] text-ink-ghost">Auto-closing in 2.5s…</span>
     </motion.div>
   );
 }

@@ -18,10 +18,17 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
+    },
     proxy: {
       // Lets the frontend call the Backend on :4000 without CORS during dev.
       "/api": { target: "http://localhost:4000", changeOrigin: true },
       "/health": { target: "http://localhost:4000", changeOrigin: true },
     },
+  },
+  optimizeDeps: {
+    exclude: ["@xenova/transformers", "kokoro-js", "onnxruntime-web"],
   },
 });
