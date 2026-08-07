@@ -192,11 +192,11 @@ function DiscoveryInput({
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className="absolute left-0 top-full mt-2 w-[340px] max-h-[240px] overflow-y-auto rounded-lg border border-white/15 bg-[#0a0b0e] shadow-[0_8px_32px_rgba(0,0,0,0.9)] z-50 py-1 text-left"
           >
-            {value.trim().length < 3 && (
-              <li className="px-3.5 py-2 text-[9px] font-mono uppercase tracking-widest text-slate-300 border-b border-white/10 bg-[#14161f] select-none">
-                Famous Indian Landmarks
-              </li>
-            )}
+              {value.trim().length < 3 && (
+                <li className="px-3.5 py-2 text-[11px] font-mono uppercase tracking-widest text-slate-300 border-b border-white/10 bg-[#14161f] select-none">
+                  Famous Global & Indian Locations
+                </li>
+              )}
             {suggestions.map((item, idx) => (
               <li
                 key={idx}

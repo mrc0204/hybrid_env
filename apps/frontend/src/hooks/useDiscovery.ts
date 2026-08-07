@@ -4,7 +4,8 @@ import { discoverOrganization, fetchLatestTrace, USE_MOCK } from "@/api/client";
 import type { OrganizationDiscoveryResult } from "@/api/client";
 import { useCognition } from "@/store/cognition";
 import { DISCOVERY_STAGES, useDiscoveryStore } from "@/store/discoveryStore";
-import type { ReasonTrace, Recommendation, RiskState, WorldEntity } from "@ai-env/contracts";
+import type { CognitiveTrace } from "@/mock/scenarios";
+import type { Recommendation, RiskState, WorldEntity } from "@ai-env/contracts";
 
 /**
  * Stages 0-7 animate with timers while the API call is in flight.
@@ -210,7 +211,7 @@ export function createDynamicTrace(
   resolvedName: string,
   center: { lat: number; lng: number },
   recommendation: Recommendation,
-): ReasonTrace {
+): CognitiveTrace {
   const shortName = resolvedName.split(",")[0] || resolvedName;
   const lat = center.lat;
   const lng = center.lng;
@@ -258,26 +259,32 @@ export function createDynamicTrace(
     },
   ];
 
+  const wsId = `ws-${Date.now()}`;
+
   const risks: RiskState[] = [
     {
       id: "risk-perimeter-01",
-      riskType: "perimeter_congestion",
+      riskType: "congestion",
       severity: "high",
-      score: 0.78,
+      status: "active",
+      description: `Heavy pedestrian & vehicle traffic accumulation near ${shortName} Main Entrance.`,
       location: { lat: lat + 0.0018, lng: lng - 0.0012 },
-      rationale: `Heavy pedestrian & vehicle traffic accumulation near ${shortName} Main Entrance.`,
-      contributingFactorIds: ["ev-traffic"],
+      affectedEntityIds: ["ent-main-gate"],
+      worldStateId: wsId,
       detectedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     },
     {
       id: "risk-weather-01",
-      riskType: "microclimate_accumulation",
+      riskType: "travel-delay",
       severity: "medium",
-      score: 0.52,
+      status: "active",
+      description: `Localized surface runoff monitoring active near West Transit Corridor.`,
       location: { lat: lat - 0.0014, lng: lng - 0.0022 },
-      rationale: `Localized surface runoff monitoring active near West Transit Corridor.`,
-      contributingFactorIds: ["ev-weather"],
+      affectedEntityIds: ["ent-west-corridor"],
+      worldStateId: wsId,
       detectedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     },
   ];
 
@@ -289,7 +296,6 @@ export function createDynamicTrace(
   ];
 
   const traceId = `trace-${Date.now()}`;
-  const wsId = `ws-${Date.now()}`;
   const simId = `sim-dijkstra-${Date.now()}`;
   const decId = `dec-${Date.now()}`;
 
@@ -299,17 +305,28 @@ export function createDynamicTrace(
     inputEvents: [
       {
         id: "ev-weather",
-        type: "weather",
+        type: "input.weather.updated",
         timestamp: new Date().toISOString(),
         source: "open-meteo",
-        payload: { tempC: 24, condition: "clear" },
+        payload: {
+          location: shortName,
+          condition: "clear",
+          temperatureC: 24.2,
+          precipitationMm: 0,
+          windKph: 12,
+        },
       },
       {
         id: "ev-traffic",
-        type: "traffic",
+        type: "input.traffic.updated",
         timestamp: new Date().toISOString(),
         source: "tomtom",
-        payload: { congestionLevel: 0.65 },
+        payload: {
+          location: `${shortName} Main Entrance`,
+          congestionLevel: "medium",
+          averageSpeedKph: 22,
+          delaySeconds: 180,
+        },
       },
     ],
     worldState: {
@@ -317,7 +334,7 @@ export function createDynamicTrace(
       scope: resolvedName,
       version: 1,
       generatedAt: new Date().toISOString(),
-      summary: `Spatial world model active for ${shortName} (${lat.toFixed(4)}, ${lat.toFixed(4)}) with 5 mapped infrastructure entities.`,
+      summary: `Spatial world model active for ${shortName} (${lat.toFixed(4)}, ${lng.toFixed(4)}) with 5 mapped infrastructure entities.`,
       entities,
       sourceEventIds: ["ev-weather", "ev-traffic"],
     },
@@ -325,27 +342,35 @@ export function createDynamicTrace(
     simulations: [
       {
         id: simId,
-        scenarioId: "scen-reroute",
+        worldStateId: wsId,
+        goalStateId: "goal-perimeter-flow",
+        candidateAction: `Reroute traffic via ${shortName} West Transit Corridor`,
         predictedOutcome: `Optimal perimeter flow bypassing high-density bottleneck at ${shortName} Main Entrance.`,
-        confidenceScore: recommendation.confidence ?? 0.91,
-        simulatedAt: new Date().toISOString(),
+        affectedRiskIds: ["risk-perimeter-01"],
+        successProbability: recommendation.confidence ?? 0.91,
+        estimatedCost: "Low reroute cost",
+        generatedAt: new Date().toISOString(),
         routePath,
         dijkstraCost: 14,
       },
     ],
     decision: {
       id: decId,
+      worldStateId: wsId,
+      goalStateId: "goal-perimeter-flow",
       chosenSimulationResultId: simId,
-      rationale: `Dijkstra graph algorithm selected least-cost perimeter path around ${shortName}.`,
-      governanceNotes: `[APPROVED] Gemini Critic verified dynamic perimeter routing safety protocols for ${shortName}.`,
-      confidenceScore: recommendation.confidence ?? 0.91,
-      agentVotes: [
-        { agentName: "Accessibility Agent", vote: "approve", confidence: 0.94, rationale: "Barrier-free access verified." },
-        { agentName: "Operations Agent", vote: "approve", confidence: 0.90, rationale: "Throughput capacity optimal." },
-        { agentName: "Safety Agent", vote: "approve", confidence: 0.92, rationale: "Perimeter hazard avoided." },
-        { agentName: "Student Experience Agent", vote: "approve", confidence: 0.88, rationale: "Minimal transit friction." },
-        { agentName: "Sustainability Agent", vote: "approve", confidence: 0.91, rationale: "Lowest carbon idle footprint." },
+      consideredSimulationResultIds: [simId],
+      consensusScore: recommendation.confidence ?? 0.91,
+      expertVotes: [
+        { expertName: "Accessibility Agent", vote: "Endorse West Corridor", rationale: "Barrier-free access verified." },
+        { expertName: "Operations Agent", vote: "Endorse", rationale: "Throughput capacity optimal." },
+        { expertName: "Safety Agent", vote: "Endorse with caution", rationale: "Perimeter hazard avoided." },
+        { expertName: "Student Experience Agent", vote: "Endorse", rationale: "Minimal transit friction." },
+        { expertName: "Sustainability Agent", vote: "Endorse", rationale: "Lowest carbon idle footprint." },
       ],
+      governanceStatus: "approved",
+      governanceNotes: `[APPROVED] Gemini Critic verified dynamic perimeter routing safety protocols for ${shortName}.`,
+      rationale: `Dijkstra graph algorithm selected least-cost perimeter path around ${shortName}.`,
       decidedAt: new Date().toISOString(),
     },
     recommendation: {

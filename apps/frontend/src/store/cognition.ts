@@ -121,8 +121,16 @@ export const useCognition = create<CognitionState>((set, get) => ({
     })),
 
   nextScenario: () => {
-    const { traceIndex } = get();
-    // Rebuilt each time so timestamps read as current rather than stale.
+    const { traceIndex, assessedOrganization, mapCenter } = get();
+    // If a custom location is currently assessed, do not overwrite it with static campus mock scenarios
+    if (assessedOrganization && mapCenter) {
+      set({
+        activeStage: -1,
+        inspectedStage: null,
+        highlightedRefId: null,
+      });
+      return;
+    }
     const traces = buildTraces();
     const nextIndex = (traceIndex + 1) % traces.length;
     set({
