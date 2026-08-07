@@ -203,11 +203,32 @@ function LandingInput({
   };
 
   const handleCurrentLocation = () => {
+    setLocating(true);
+
+    const fallbackToIp = async () => {
+      try {
+        const res = await fetch("https://ipapi.co/json/");
+        const data = await res.json();
+        if (data && typeof data.latitude === "number" && typeof data.longitude === "number") {
+          const lat = data.latitude;
+          const lng = data.longitude;
+          const place = await reverseGeocodeLocation(lat, lng);
+          setLocating(false);
+          onDiscover(place.displayName, { lat, lng }, place.boundingBox);
+          return;
+        }
+      } catch (ipErr) {
+        console.warn("IP geolocation fallback failed", ipErr);
+      }
+      setLocating(false);
+      alert("Could not automatically determine your location. Please type your city name in the search box.");
+    };
+
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser.");
+      fallbackToIp();
       return;
     }
-    setLocating(true);
+
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const lat = pos.coords.latitude;
@@ -217,10 +238,10 @@ function LandingInput({
         onDiscover(place.displayName, { lat, lng }, place.boundingBox);
       },
       (err) => {
-        setLocating(false);
-        alert("Could not access current location: " + err.message);
+        console.warn("Browser GPS geolocation failed, falling back to IP location", err);
+        fallbackToIp();
       },
-      { timeout: 10000 },
+      { timeout: 6000, enableHighAccuracy: false },
     );
   };
 

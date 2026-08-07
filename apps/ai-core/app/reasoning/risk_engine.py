@@ -84,6 +84,22 @@ class RiskEngine:
         return risks
 
     @staticmethod
+    def _compute_centroid(entities: list[WorldEntity]) -> dict[str, float] | None:
+        coords = []
+        for e in entities:
+            loc = e.location
+            if isinstance(loc, dict) and "lat" in loc and "lng" in loc:
+                try:
+                    coords.append((float(loc["lat"]), float(loc["lng"])))
+                except (ValueError, TypeError):
+                    pass
+        if not coords:
+            return None
+        avg_lat = sum(c[0] for c in coords) / len(coords)
+        avg_lng = sum(c[1] for c in coords) / len(coords)
+        return {"lat": avg_lat, "lng": avg_lng}
+
+    @staticmethod
     def _heat_severity(temp_c: object) -> str | None:
         if not isinstance(temp_c, (int, float)):
             return None

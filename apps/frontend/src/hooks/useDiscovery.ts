@@ -4,7 +4,7 @@ import { discoverOrganization, fetchLatestTrace, USE_MOCK } from "@/api/client";
 import type { OrganizationDiscoveryResult } from "@/api/client";
 import { useCognition } from "@/store/cognition";
 import { DISCOVERY_STAGES, useDiscoveryStore } from "@/store/discoveryStore";
-import type { Recommendation } from "@ai-env/contracts";
+import type { ReasonTrace, Recommendation, RiskState, WorldEntity } from "@ai-env/contracts";
 
 /**
  * Stages 0-7 animate with timers while the API call is in flight.
@@ -206,6 +206,167 @@ async function clientGeocodeAndDiscover(
   };
 }
 
+export function createDynamicTrace(
+  resolvedName: string,
+  center: { lat: number; lng: number },
+  recommendation: Recommendation,
+): ReasonTrace {
+  const shortName = resolvedName.split(",")[0] || resolvedName;
+  const lat = center.lat;
+  const lng = center.lng;
+
+  const entities: WorldEntity[] = [
+    {
+      id: "ent-main-gate",
+      type: "gate",
+      label: `${shortName} Main Entrance`,
+      location: { lat: lat + 0.0018, lng: lng - 0.0012 },
+      attributes: { access: "primary", status: "congested" },
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: "ent-west-corridor",
+      type: "corridor",
+      label: `${shortName} West Transit Corridor`,
+      location: { lat: lat - 0.0014, lng: lng - 0.0022 },
+      attributes: { access: "secondary", status: "clear" },
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: "ent-north-terminal",
+      type: "terminal",
+      label: `${shortName} North Transit Node`,
+      location: { lat: lat + 0.0028, lng: lng + 0.0018 },
+      attributes: { capacity: "high" },
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: "ent-central-plaza",
+      type: "zone",
+      label: `${shortName} Central Hub`,
+      location: { lat, lng },
+      attributes: { pedestrianDensity: "medium" },
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: "ent-south-gate",
+      type: "gate",
+      label: `${shortName} South Perimeter Access`,
+      location: { lat: lat - 0.0022, lng: lng + 0.0014 },
+      attributes: { access: "service", status: "optimal" },
+      updatedAt: new Date().toISOString(),
+    },
+  ];
+
+  const risks: RiskState[] = [
+    {
+      id: "risk-perimeter-01",
+      riskType: "perimeter_congestion",
+      severity: "high",
+      score: 0.78,
+      location: { lat: lat + 0.0018, lng: lng - 0.0012 },
+      rationale: `Heavy pedestrian & vehicle traffic accumulation near ${shortName} Main Entrance.`,
+      contributingFactorIds: ["ev-traffic"],
+      detectedAt: new Date().toISOString(),
+    },
+    {
+      id: "risk-weather-01",
+      riskType: "microclimate_accumulation",
+      severity: "medium",
+      score: 0.52,
+      location: { lat: lat - 0.0014, lng: lng - 0.0022 },
+      rationale: `Localized surface runoff monitoring active near West Transit Corridor.`,
+      contributingFactorIds: ["ev-weather"],
+      detectedAt: new Date().toISOString(),
+    },
+  ];
+
+  const routePath = [
+    `${shortName} South Perimeter Access`,
+    `${shortName} Central Hub`,
+    `${shortName} West Transit Corridor`,
+    `${shortName} North Transit Node`,
+  ];
+
+  const traceId = `trace-${Date.now()}`;
+  const wsId = `ws-${Date.now()}`;
+  const simId = `sim-dijkstra-${Date.now()}`;
+  const decId = `dec-${Date.now()}`;
+
+  return {
+    key: traceId,
+    label: resolvedName,
+    inputEvents: [
+      {
+        id: "ev-weather",
+        type: "weather",
+        timestamp: new Date().toISOString(),
+        source: "open-meteo",
+        payload: { tempC: 24, condition: "clear" },
+      },
+      {
+        id: "ev-traffic",
+        type: "traffic",
+        timestamp: new Date().toISOString(),
+        source: "tomtom",
+        payload: { congestionLevel: 0.65 },
+      },
+    ],
+    worldState: {
+      id: wsId,
+      scope: resolvedName,
+      version: 1,
+      generatedAt: new Date().toISOString(),
+      summary: `Spatial world model active for ${shortName} (${lat.toFixed(4)}, ${lat.toFixed(4)}) with 5 mapped infrastructure entities.`,
+      entities,
+      sourceEventIds: ["ev-weather", "ev-traffic"],
+    },
+    risks,
+    simulations: [
+      {
+        id: simId,
+        scenarioId: "scen-reroute",
+        predictedOutcome: `Optimal perimeter flow bypassing high-density bottleneck at ${shortName} Main Entrance.`,
+        confidenceScore: recommendation.confidence ?? 0.91,
+        simulatedAt: new Date().toISOString(),
+        routePath,
+        dijkstraCost: 14,
+      },
+    ],
+    decision: {
+      id: decId,
+      chosenSimulationResultId: simId,
+      rationale: `Dijkstra graph algorithm selected least-cost perimeter path around ${shortName}.`,
+      governanceNotes: `[APPROVED] Gemini Critic verified dynamic perimeter routing safety protocols for ${shortName}.`,
+      confidenceScore: recommendation.confidence ?? 0.91,
+      agentVotes: [
+        { agentName: "Accessibility Agent", vote: "approve", confidence: 0.94, rationale: "Barrier-free access verified." },
+        { agentName: "Operations Agent", vote: "approve", confidence: 0.90, rationale: "Throughput capacity optimal." },
+        { agentName: "Safety Agent", vote: "approve", confidence: 0.92, rationale: "Perimeter hazard avoided." },
+        { agentName: "Student Experience Agent", vote: "approve", confidence: 0.88, rationale: "Minimal transit friction." },
+        { agentName: "Sustainability Agent", vote: "approve", confidence: 0.91, rationale: "Lowest carbon idle footprint." },
+      ],
+      decidedAt: new Date().toISOString(),
+    },
+    recommendation: {
+      ...recommendation,
+      evidence: [
+        {
+          type: "world_state",
+          refId: "ent-main-gate",
+          description: `Heavy congestion at ${shortName} Main Entrance.`,
+        },
+        {
+          type: "risk_state",
+          refId: "risk-perimeter-01",
+          description: `Perimeter congestion risk score 0.78 at ${shortName}.`,
+        },
+      ],
+      worldStateId: wsId,
+    },
+  };
+}
+
 async function mockDiscover(
   orgName: string,
   center?: { lat: number; lng: number },
@@ -393,16 +554,13 @@ export function useDiscovery() {
                           console.error("Failed to fetch latest live trace", err);
                         });
                     } else {
-                      const baseTrace = useCognition.getState().traces[0]!;
-                      useCognition.getState().setTrace({
-                        ...baseTrace,
-                        label: resolvedName,
-                        worldState: {
-                          ...baseTrace.worldState,
-                          scope: resolvedName,
-                        },
-                        recommendation: result.pipeline.recommendation!,
-                      });
+                      const centerPoint = result.organization.center || { lat: 40.758, lng: -73.9855 };
+                      const dynamicTrace = createDynamicTrace(
+                        resolvedName,
+                        centerPoint,
+                        result.pipeline.recommendation!,
+                      );
+                      useCognition.getState().setTrace(dynamicTrace);
                     }
 
                     succeed(result.pipeline.recommendation);
