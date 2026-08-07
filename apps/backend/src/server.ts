@@ -7,7 +7,29 @@ import { logger } from "./logging/logger";
 import { startEnvironmentScheduler } from "./pipeline/environment.pipeline";
 import { initSocketServer } from "./realtime/socket";
 
+/**
+ * Last line of defence for the process itself. Node's default on an unhandled
+ * rejection (and, effectively, an uncaught exception) is to terminate — which
+ * is exactly the "backend dies after a search" symptom when any async path
+ * anywhere throws without a local catch. A demo API is far better off logging
+ * the fault and staying up to serve the next request than exiting.
+ *
+ * Note this cannot catch an out-of-memory kill: that is a SIGKILL from the
+ * container and is uncatchable in-process. If the crash persists with these
+ * handlers installed, the cause is memory, not a stray exception.
+ */
+function installProcessGuards(): void {
+  process.on("unhandledRejection", (reason) => {
+    logger.error({ err: reason }, "[process] unhandled promise rejection — kept alive");
+  });
+  process.on("uncaughtException", (err) => {
+    logger.error({ err }, "[process] uncaught exception — kept alive");
+  });
+}
+
 async function main(): Promise<void> {
+  installProcessGuards();
+
   const app = createApp();
   const httpServer = createServer(app);
   initSocketServer(httpServer);
