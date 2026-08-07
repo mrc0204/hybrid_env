@@ -103,7 +103,11 @@ export default function App() {
               </div>
             </Panel>
 
-            <Panel className="min-h-0 flex-1">
+            {/* Explicit height on small screens: stacked in a scrolling column,
+                a flex-1 map collapses to nothing (it is h-full of a zero-height
+                box). A viewport height keeps it usable; on lg the fixed
+                composition takes over and flex-1 fills the column. */}
+            <Panel className="h-[45vh] shrink-0 lg:h-auto lg:min-h-0 lg:flex-1">
               <PanelHeader label="Environment" />
               <div className="relative min-h-0 flex-1 px-3 pb-3">
                 <EnvironmentMap />
@@ -113,7 +117,7 @@ export default function App() {
           </div>
 
           {/* What it means — the reasoning trace, given the most room. */}
-          <Panel className="min-h-0">
+          <Panel className="min-h-[70vh] lg:min-h-0">
             <PanelHeader
               label="Reasoning trace"
               detail={
@@ -124,7 +128,7 @@ export default function App() {
           </Panel>
 
           {/* What to do */}
-          <Panel className="min-h-0">
+          <Panel className="min-h-[60vh] lg:min-h-0">
             <PanelHeader label="Recommendation" />
             <RecommendationPanel />
           </Panel>
@@ -150,6 +154,8 @@ export default function App() {
  * Centered startup input. Matches the overall visual system guidelines:
  * rich aesthetics, micro-animations, clear constraints.
  */
+import { useVoiceIntelligence } from "@/hooks/useVoiceIntelligence";
+
 function LandingInput({
   onDiscover,
 }: {
@@ -164,6 +170,23 @@ function LandingInput({
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [locating, setLocating] = useState(false);
+
+  const {
+    isListening,
+    startListening,
+    stopListening,
+    transcript,
+    isSupported: isVoiceSupported,
+  } = useVoiceIntelligence((query) => {
+    setValue(query);
+    onDiscover(query);
+  });
+
+  useEffect(() => {
+    if (transcript) {
+      setValue(transcript);
+    }
+  }, [transcript]);
 
   useEffect(() => {
     const trimmed = value.trim();
@@ -318,6 +341,27 @@ function LandingInput({
           Assess Footprint
         </button>
 
+        {isVoiceSupported && (
+          <button
+            type="button"
+            onClick={isListening ? stopListening : startListening}
+            className={cn(
+              "flex items-center justify-center gap-1.5 rounded-lg border px-3.5 py-2.5 font-mono text-[11px] uppercase tracking-wider transition-all duration-200 cursor-pointer",
+              isListening
+                ? "border-amber-400 bg-amber-500/20 text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.4)]"
+                : "border-white/20 bg-surface/80 text-ink-muted hover:border-cognition/60 hover:text-cognition",
+            )}
+            title={isListening ? "Listening... Speak location (e.g. 'Analyze Times Square')" : "Voice Command"}
+          >
+            <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth={2}>
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="22" />
+            </svg>
+            {isListening ? "Listening..." : "Voice"}
+          </button>
+        )}
+
         <button
           type="button"
           onClick={handleCurrentLocation}
@@ -331,7 +375,7 @@ function LandingInput({
       </div>
 
       <span className="font-mono text-[11px] text-ink-ghost tracking-wide">
-        e.g., Hyderabad, Bengaluru, Times Square, Eiffel Tower, or Near Me
+        e.g., Speak "Analyze Times Square", or type Hyderabad, Eiffel Tower, Near Me
       </span>
     </form>
   );

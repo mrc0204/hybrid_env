@@ -7,6 +7,8 @@ import { peakSeverity } from "@/lib/severity";
 import { useCognition } from "@/store/cognition";
 import { useDiscoveryStore } from "@/store/discoveryStore";
 
+import { useVoiceIntelligence } from "@/hooks/useVoiceIntelligence";
+
 interface TopBarProps {
   onDiscover: (
     orgName: string,
@@ -15,34 +17,86 @@ interface TopBarProps {
   ) => void;
 }
 
-/**
- * System identity, liveness, and the discovery entry point.
- *
- * The input is minimal by design — a single underline field that recedes when
- * empty and only shows the submit arrow when there is something to submit.
- * Discovering an organization is an intentional act, not an ambient control.
- */
 export function TopBar({ onDiscover }: TopBarProps) {
   const isRunning = useCognition((s) => s.isRunning);
   const cycleCount = useCognition((s) => s.cycleCount);
   const trace = useCognition((s) => s.trace);
   const severity = peakSeverity(trace.risks);
 
+  const { isListening, isSpeaking, startListening, stopListening, stopSpeaking, isSupported } =
+    useVoiceIntelligence((location) => onDiscover(location));
+
   return (
-    <header className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center px-7 py-4">
+    <header className="flex shrink-0 items-center justify-between gap-3 px-4 py-3 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:px-7 lg:py-4">
       {/* ── Left: identity ─────────────────────────────────────────────────── */}
-      <div className="flex items-baseline gap-3">
-        <h1 className="text-[13px] font-medium tracking-[-0.01em] text-ink">
+      <div className="flex min-w-0 items-baseline gap-3">
+        <h1 className="shrink-0 text-[12px] font-medium tracking-[-0.01em] text-ink sm:text-[13px]">
           Environment Intelligence
         </h1>
-        <span className="font-mono text-[10px] text-ink-ghost">{trace.worldState.scope}</span>
+        <span className="hidden min-w-0 truncate font-mono text-[10px] text-ink-ghost sm:inline">
+          {trace.worldState.scope}
+        </span>
       </div>
 
-      {/* ── Centre: discovery input ─────────────────────────────────────────── */}
-      <DiscoveryInput onDiscover={onDiscover} />
+      {/* ── Centre: discovery input + Voice Controls ────────────────────────── */}
+      <div className="hidden justify-center items-center gap-3 lg:flex">
+        <DiscoveryInput onDiscover={onDiscover} />
+
+        {/* Voice Control Button */}
+        {isSupported && (
+          <button
+            type="button"
+            onClick={() => {
+              if (isSpeaking) {
+                stopSpeaking();
+              } else if (isListening) {
+                stopListening();
+              } else {
+                startListening();
+              }
+            }}
+            className={cn(
+              "relative flex items-center justify-center h-7 w-7 rounded-full border transition-all duration-300",
+              isListening
+                ? "border-amber-400 bg-amber-500/20 text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.5)]"
+                : isSpeaking
+                  ? "border-emerald-400 bg-emerald-500/20 text-emerald-300 shadow-[0_0_12px_rgba(52,211,153,0.5)]"
+                  : "border-white/20 bg-surface/80 text-ink-muted hover:border-cognition/60 hover:text-cognition",
+            )}
+            title={
+              isSpeaking
+                ? "Stop Briefing (Mute)"
+                : isListening
+                  ? "Listening... Click to cancel"
+                  : "Start Voice Control (Speak location or 'Explain')"
+            }
+          >
+            {isListening && (
+              <span className="absolute inset-0 rounded-full bg-amber-400/30 animate-ping" />
+            )}
+            {isSpeaking && (
+              <span className="absolute inset-0 rounded-full bg-emerald-400/30 animate-ping" />
+            )}
+
+            {isSpeaking ? (
+              <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth={2}>
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <line x1="23" y1="9" x2="17" y2="15" />
+                <line x1="17" y1="9" x2="23" y2="15" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth={2}>
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" y1="19" x2="12" y2="22" />
+              </svg>
+            )}
+          </button>
+        )}
+      </div>
 
       {/* ── Right: system status ────────────────────────────────────────────── */}
-      <div className="flex items-center justify-end gap-5">
+      <div className="flex shrink-0 items-center justify-end gap-3 lg:gap-5">
         <div className="flex items-center gap-2">
           <motion.span
             className={cn(
