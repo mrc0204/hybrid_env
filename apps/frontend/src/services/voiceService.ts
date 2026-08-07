@@ -95,12 +95,11 @@ export class VoiceService {
     options?.onStart?.();
     this._isSpeaking = true;
 
-    // Try Kokoro TTS primary engine
-    const model = await this.initKokoro();
-    if (model) {
+    // Fast path: if Kokoro TTS is already initialized, generate neural speech
+    if (this.ttsModel) {
       try {
-        const audioData = await model.generate(text, {
-          voice: "af_sarah", // High quality clear executive voice
+        const audioData = await this.ttsModel.generate(text, {
+          voice: "af_sarah",
           speed: 1.05,
         });
 
@@ -113,7 +112,10 @@ export class VoiceService {
       }
     }
 
-    // Fallback: Native Browser SpeechSynthesis
+    // Trigger background initialization so Kokoro is ready for subsequent briefings
+    this.initKokoro().catch(() => {});
+
+    // Instant speech output via native browser SpeechSynthesis (zero waiting/silence)
     this.speakNativeFallback(text, options);
   }
 
